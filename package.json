@@ -1,5 +1,5 @@
 {
-  "name": "xink",
+  "name": "@xink-sh/xink",
   "version": "0.1.0-next.0",
   "type": "module",
   "keywords": ["filesystem", "router", "bun"],
