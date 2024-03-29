@@ -67,7 +67,10 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
   //console.log(tree.root.children)
 }
 
-export const router = async ({ req }: { req: Request }): Promise<Response> => {
+/**
+ * xink Filesystem Router
+ */
+export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const { headers, url } = parseRequest(req)
   const method = req.method
 

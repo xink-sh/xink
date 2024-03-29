@@ -17,5 +17,13 @@ export type ValidatedConfig = {
 }
 export type RouteType = 'static' | 'specific' | 'matcher' | 'dynamic' | 'low'
 
-export function router({ req }: { req: Request }): Promise<Response>
+/**
+ * xink Filesystem Router
+ */
+export function xink({ req }: { req: Request }): Promise<Response>
+
+/**
+ * Initialize xink Router.
+ * Needed even if you don't pass in a config.
+ */
 export function initRouter({}: { config?: Config } = {}): void
