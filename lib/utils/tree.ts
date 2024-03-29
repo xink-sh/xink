@@ -1,142 +1,171 @@
 import hexoid from 'hexoid'
-import { RouteType } from '../../types'
+import { Handler, Handlers, RouteType } from '../../types'
 
 const id = hexoid()
 
-const regexp_map = new Map<RouteType, RegExp>()
+const route_regexp_map = new Map<RouteType, RegExp>()
 /* src/routes/hello/world */
-regexp_map.set('static',  /^[^\[\].=](?:[\w.~\/-]+|\[{2}[a-zA-A]+\]{2}|\[{1}\.{3}[a-zA-Z]+\]{1})+[\w.~\/-]+[^\]=\[]$/)
+route_regexp_map.set('static',  /^[^\[\].=](?:[\w.~\/-]+|\[{2}[a-zA-A]+\]{2}|\[{1}\.{3}[a-zA-Z]+\]{1})+[\w.~\/-]+[^\]=\[]$/)
 /* src/routes/hello-[world] */
-regexp_map.set('specific', /\/[\w\-\.~]+\[{1}[a-zA-Z]+\]{1}\//)
+route_regexp_map.set('specific', /\/[\w\-\.~]+\[{1}[a-zA-Z]+\]{1}\//)
 /* [...rest=integer] or [word=string] or [[word=string]] */
-regexp_map.set('matcher', /\/(?:\[{1}\.{3}[a-zA-Z]+=[a-zA-Z]+\]{1}|\[{1,2}[a-zA-Z]+=[a-zA-Z]+\]{1,2})\//)
+route_regexp_map.set('matcher', /\/(?:\[{1}\.{3}[a-zA-Z]+=[a-zA-Z]+\]{1}|\[{1,2}[a-zA-Z]+=[a-zA-Z]+\]{1,2})\//)
 /* /src/routes/[hello]/world */
-regexp_map.set('dynamic', /\/\[{1}[\w\-\.~]+\]{1}\/{0,1}/)
+route_regexp_map.set('dynamic', /\/\[{1}[\w\-\.~]+\]{1}\/{0,1}/)
 /* /[[optional]] or /[...rest] at the end of a route */
-regexp_map.set('low', /\/(?:\[{2}[a-zA-A]+\]{2}|\[{1}\.{3}[a-zA-Z]+\]{1})$/)
+route_regexp_map.set('low', /\/(?:\[{2}[a-zA-A]+\]{2}|\[{1}\.{3}[a-zA-Z]+\]{1})$/)
+
+const segment_regexp_map = new Map<RouteType, RegExp>()
+/* hello */
+segment_regexp_map.set('static',  /^[\w.~\/-]+$/)
+/* hello-[world] */
+segment_regexp_map.set('specific', /^[\w\-\.~]+\[{1}[a-zA-Z]+\]{1}$/)
+/* [...rest=integer] or [word=string] or [[word=string]] */
+segment_regexp_map.set('matcher', /^(?:\[{1}\.{3}[a-zA-Z]+=[a-zA-Z]+\]{1}|\[{1,2}[a-zA-Z]+=[a-zA-Z]+\]{1,2})$/)
+/* [hello] */
+segment_regexp_map.set('dynamic', /^\[{1}[\w\-\.~]+\]{1}$/)
+/* [[optional]] or [...rest] */
+segment_regexp_map.set('low', /^(?:\[{2}[a-zA-A]+\]{2}|\[{1}\.{3}[a-zA-Z]+\]{1})$/)
 
 class Node {
-  key: string
-  data: string
-  parent: string | null
-  children: Node[]
-  constructor(key: string, data: string, parent: string | null = null) {
+  key
+  segment
+  type
+  parent
+  children
+  handlers
+  constructor({ key = id(), segment = '', type = null, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: string | null; parent: string; children?: Node[]; handlers?: any; }) {
     this.key = key
-    this.data = data
+    this.segment = segment
+    this.type = type
     this.parent = parent
-    this.children = []
+    this.children = children
+    this.handlers = handlers
   }
 }
 
-/* /hello/there/world */
-/* /goodbye/world */
-const types = ['static', 'specific', 'matcher', 'dynamic', 'low']
+const types = ['static']
+/* TODO: const types = ['static', 'specific', 'matcher', 'dynamic', 'low'] */
+
 export class Tree {
   /* Initialize the root node when tree is created. */
   root: Node = {
-    key: id(),
-    data: '',
+    key: 'root',
+    segment: '',
+    type: null,
     parent: 'self',
-    children: []
+    children: [],
+    handlers: null
   }
   
   constructor() {
     /* Add nodes for types. */
     console.log('initializing tree')
-    types.forEach((t) => this.add(t, true))
+    types.forEach((t) => this.create({ key: t, parent: 'root' }))
     console.log(this.root.children)
     //this.add(route_dir)
   }
 
-  add(data: string, root?: boolean) {
-    /* Bypass normal processing and add under root Node. */
-    if (root) {
-      this.create(id(), data, this.root.key)
-      return
-    }
-    
-    const type = this.type(data)
-    console.log(`Route type for ${data} is ${type}.`)
+  add(path: string, handlers?: any) {
+    const type = this.routeType(path)
+    console.log(`Route type for ${path} is ${type}.`)
 
-    const parts = data.split('/')
-    console.log('parts of route', parts)
-    let previous_node: Node
-    let segment: string[] = []
+    const segments = path === '/' ? ['/'] : path.substring(1).split('/')
+    console.log('segments of route', segments)
+    let path_segments: string[] = []
 
-    /* Get key for route type. */
-    const root_node = this.find('root', true)
-    const type_node = root_node.children.find((c) => c.data === type)
-    console.log('type', type_node)
-    parts.forEach((p, i) => {
-      console.log('part', p)
-      if (i === 0) {
-          segment.push(p)
-          console.log('segment', segment)
-          console.log('skipping part', p)
-          previous_node = this.root
-      } else {
-        segment.push(p)
-        console.log('segment', segment)
+    /* Get key for route type node, so we know who this route's parent will be. */
+    const route_type_node = this.root.children.find((c) => c.key === type)
+    if (!route_type_node) throw Error('No child node found under root that matches')
+    console.log('type', route_type_node)
+    let previous_node: Node = route_type_node
 
-        /* TODO is there a tree segment which matches `segment`? */
-        /** 
-         * to accomplish, should we hash all parts before adding part to tree? and include hash as a property;
-         * then when searching for a segment, hash the items first and compare with tree hashes?
-         */
+    segments.forEach((s) => {
+      console.log('part', s)
+      path_segments.push(s)
 
-        /* Parent is key of last node created. */
-        console.log('creating node under some parent', previous_node.data, 'for', 'part', p)
-        previous_node = this.create(id(), p, previous_node.key)
-        
-      }
+      /* Find out the type for this path segment. */
+      const path_segment_type = this.segmentType(s)
+
+      /* Parent is key of last node created. */
+      console.log('creating node under parent', previous_node.segment || previous_node.key, 'for', 'segment', s)
+      /* For handlers: If this is the last segment of the route, add them to the node. */
+      previous_node = this.create({ segment: s, type: path_segment_type, parent: previous_node.key, handlers: segments.at(-1) === s ? handlers : null })
     })
-    console.log('segment', segment)
-
-
-    // parts.forEach((p, i) => {
-    //   //console.log('previous node:', previous_node)
-    //   if (!this.root) {
-    //     console.log('adding root node')
-    //     previous_node = this.create(id(), p, 'self')
-    //   } else if (i === 0) {
-    //     //console.log('must not be the first route we are adding now')
-    //     /* Need to know key of root node. */
-    //     const root = this.find('root', true)
-    //     previous_node = this.create(id(), p, root.key)
-    //   } else {
-    //     /* Parent is key of last node created. */
-    //     previous_node = this.create(id(), p, previous_node.key)
-    //   }
-    //   //console.log(JSON.stringify(this.root?.children, null, 2))
-    // })
+    console.log('path segments processed:', path_segments)
   }
 
-  create(key: string, data: string, parent: string) {
-    /* Node already exist? */
-    const node = new Node(key, data, parent)
+  create({ key = id(), segment = '', type = null, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: string | null; parent: string; children?: Node[]; handlers?: any; }) {
+    console.log(`Finding parent with key ${parent}`)
+    const parent_node = this.find(parent)
+    if (!parent_node) throw new Error(`No parent node found with key ${key}`)
 
-    try {
-      const target_parent = this.find(parent)
+    let child_exists: Node | null
 
-      //node.parent = target_parent.key
-      target_parent.children.push(node)
-
-    } catch (err) {
-      throw new Error(`Error when adding new node to tree: ${err}`)
+    if (parent_node.children.length > 0) {
+      console.log(`Parent ${parent} has ${children.length} children`)
+      child_exists = this.searchBySegment(segment, parent_node)
+      console.log(`Child exists?`, child_exists)
+      if (child_exists) return child_exists
     }
+
+    console.log(`No child exists, creating with key ${key} for segment ${segment}.`)
+    const node = new Node({ key, segment, type, parent, children, handlers })
+    
+    console.log(`Adding new child ${JSON.stringify(node, null, 2)} to parent ${JSON.stringify(parent_node, null, 2)}`)
+    parent_node.children.push(node)
 
     return node
   }
 
   /* Find and return a node. */
-  find(key: string, root?: boolean) {
+  find(key: string, root?: boolean): Node | null {
     if (root || key === this.root.key) return this.root
 
-    return this.search(key)
+    return this.searchByKey(key)
   }
 
-  search(key: string, node = this.root) {
+  /* Find a route match. */
+  findRoute(path: string, method: string): Handler | null {
+    const type = this.routeType(path)
+    console.log(`Route type for ${path} is ${type}.`)
+
+    const segments = path === '/' ? ['/'] : path.substring(1).split('/')
+    console.log('segments of route', segments)
+
+    let path_segments: string[] = []
+
+    /* Get key for route type node, so we know who this route's parent will be. */
+    const route_type_node = this.root.children.find((c) => c.key === type)
+    if (!route_type_node) throw Error('No child node found under root that matches')
+    console.log('type', route_type_node)
+    let current_node: Node = route_type_node
+    let found_node: Node | null
+    segments.forEach((s) => {
+      console.log('part', s)
+      path_segments.push(s)
+
+      /* Find out the type for this path segment. */
+      const path_segment_type = this.segmentType(s)
+
+      /* Parent is key of last node created. */
+      console.log('searching node under parent', current_node?.segment || current_node?.key, 'for', 'segment', s)
+      
+      found_node = this.searchBySegment(s, current_node)
+
+      if (!found_node) return null
+      current_node = found_node
+    })
+
+    /* No handlers or no matching handler method for route. */
+    if (!current_node.handlers || typeof current_node.handlers[method] !== 'function') return null
+    
+    return current_node.handlers[method]
+  }
+
+  searchByKey(key: string, node = this.root): Node | null {
     if (!node) throw new Error('Cannot search: node is falsey.')
+    if (node.children.length === 0) return null
 
     let target_node = null
     let found = false
@@ -157,18 +186,56 @@ export class Tree {
     depthFirst(node)
 
     if (!target_node) {
-      throw new Error(`depth(): Target node with given key: "${key}" is not found in the tree.`)
+      return null
+    } else {
+      return target_node
+    }
+  }
+
+  searchBySegment(segment: string, node = this.root): Node | null {
+    if (!node) throw new Error('Cannot search: node is falsey.')
+
+    let target_node = null
+    let found = false
+
+    const widthFirst = (current: Node) => {
+      for (let i = 0; i < current.children.length; i++) {
+        if (current.children[i].segment === segment) {
+          found = true
+          target_node = current.children[i]
+          break
+        }
+      }
+    }
+
+    widthFirst(node)
+
+    if (!target_node) {
+      return null
     } else {
       return target_node
     }
   }
 
   /* Identify the route type. */
-  type(data: string): RouteType {
-    for (const [key, value] of regexp_map) {
-      const match = value.test(data)
+  routeType(route: string): RouteType {
+    if (route === '/') return 'static'
+
+    for (const [key, value] of route_regexp_map) {
+      const match = value.test(route)
       if (match) return key
     }
-    throw new Error(`Route ${data} is invalid.`)
+    throw new Error(`Route ${route} is invalid.`)
+  }
+
+  /* Identify the segment type. */
+  segmentType(segment: string): RouteType {
+    if (segment === '/') return 'static'
+
+    for (const [key, value] of segment_regexp_map) {
+      const match = value.test(segment)
+      if (match) return key
+    }
+    throw new Error(`Segment ${segment} is invalid.`)
   }
 }

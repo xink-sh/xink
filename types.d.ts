@@ -16,6 +16,8 @@ export type ValidatedConfig = {
   routes: string;
 }
 export type RouteType = 'static' | 'specific' | 'matcher' | 'dynamic' | 'low'
+export type Handler = (req: RequestEvent) => Promise<Response>
+export type Handlers = Handler | null
 
 /**
  * xink Filesystem Router

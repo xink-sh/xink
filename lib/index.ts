@@ -20,51 +20,52 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
   tree = new Tree()
 
   c = config ? validateConfig(config) : CONFIG
+  const routes_dir = c.routes
 
   try {
-    await readdir(join(cwd, c.routes))
+    statSync(join(cwd, routes_dir)).isDirectory()
   } catch (err) {
-    throw new Error(`Routes directory ${c.routes} does not exist.`)
+    throw new Error(`Routes directory ${routes_dir} does not exist.`)
   }
-
-  let routes: string[] = []
 
   /**
    * Reference: https://stackoverflow.com/a/63111390
    */
-  const readDirRecursive = (dir: string) => {
-    //console.log('processing dir', dir)
-    readdirSync(dir).forEach(f => {
-      //console.log('reading', f)
-      //console.log('dir', dir)
+  const readDirRecursive = async (dir: string): Promise<void> => {
+    console.log('processing dir', dir)
+    const directories = readdirSync(dir)
+    const path = dir.substring(routes_dir.length) || '/'
 
-      /* Don't enter any routes for / here. */
-      if (dir !== `./${c.routes}` && f === 'endpoint.ts') {
-        //console.log('pushing', dir)
-        routes.push(`${dir}`)
+    for (const f of directories) {
+      console.log('reading', f)
+
+      if (f === 'endpoint.ts') {
+        console.log('path', path)
+        const handlers = await import(`${join(cwd, dir, f)}`)
+        console.log(`done getting handlers for`, path)
+        console.log(path, 'handlers:', handlers)
+        console.log('adding', path, 'to tree')
+        tree.add(path, handlers)
+        //tree.add(path)
+        console.log('done adding', path, 'to tree')
+      } else {
+        const absolute_path = join(dir, f)
+        await readDirRecursive(absolute_path)
       }
- 
-      const absolute = join(dir, f)
-      //console.log('absolute', absolute)
 
-      /* Add route for / if there's an endpoint. */
-      if (absolute === `${c.routes}/endpoint.ts`) {
-        //console.log('found endpoint for /')
-        routes.push(`${c.routes}`)
-      }
-
-      if (statSync(absolute).isDirectory())
-        return readDirRecursive(absolute)
-    })
+      // console.log('setting absolute path for', f)
+      // const absolute_path = join(dir, f)
+      // if (statSync(absolute_path).isDirectory()) {
+      //   console.log('recursing', absolute_path)
+      //   readDirRecursive(absolute_path)
+      // }
+    }
   }
 
   /* Read routes directory. */
-  readDirRecursive(`./${c.routes}`)
-  
-  for (const route of routes) {
-    tree.add(route)
-  }
-  //console.log(tree.root.children)
+  await readDirRecursive(`${routes_dir}`)
+  //console.log(JSON.stringify(tree.root.children, null, 2))
+  console.log(JSON.stringify(tree.root.children[0].children, null, 2))
 }
 
 /**
@@ -73,34 +74,10 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const { headers, url } = parseRequest(req)
   const method = req.method
-
-  console.log('config routes are', c.routes)
-  //console.log('full tree', tree)
   const to_match = join(c.routes, url.pathname)
-  console.log('to match', to_match)
-  //console.log('Trying to find route in tree...')
-  //const matched = tree.find(to_match)
-  
-  const matched = true
-  //console.log('matched?', matched)
+  const matched = tree.findRoute(to_match.substring(c.routes.length), method)
 
-  if (!matched) {
-    //console.log('did not match a route in the tree')
-    return new Response('Not Found', { status: 404 })
-  }
-  const maybe_route = Bun.file(join(cwd, to_match, 'endpoint.ts'))
-  const file = await maybe_route.exists()
+  if (!matched) return new Response('Not Found', { status: 404 })
 
-  /* No route. */
-  if (!file) {
-    console.log('no endpoint.ts file for route')
-    return new Response('Not Found', { status: 404 })
-  }
-
-  const handler = await import(`${maybe_route.name}`)
-
-  /* No matching method for route. */
-  if (typeof handler[method] !== 'function') return new Response('Not Found', { status: 404 })
-
-  return handler[method]({ req, headers, url })
+  return matched({ req, headers, url })
 }
