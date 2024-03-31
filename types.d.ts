@@ -17,7 +17,6 @@ export type ValidatedConfig = {
 }
 export type RouteType = 'static' | 'specific' | 'matcher' | 'dynamic' | 'low'
 export type Handler = (req: RequestEvent) => Promise<Response>
-export type Handlers = Handler | null
 
 /**
  * xink Filesystem Router
@@ -29,3 +28,6 @@ export function xink({ req }: { req: Request }): Promise<Response>
  * Needed even if you don't pass in a config.
  */
 export function initRouter({}: { config?: Config } = {}): void
+
+export function json(data: any, init?: ResponseInit | undefined): Response
+export function text(data: string, init?: ResponseInit | undefined): Response

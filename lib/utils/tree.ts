@@ -1,5 +1,5 @@
 import hexoid from 'hexoid'
-import { Handler, Handlers, RouteType } from '../../types'
+import { Handler, RouteType } from '../../types'
 
 const id = hexoid()
 
@@ -60,59 +60,43 @@ export class Tree {
   
   constructor() {
     /* Add nodes for types. */
-    console.log('initializing tree')
     types.forEach((t) => this.create({ key: t, parent: 'root' }))
-    console.log(this.root.children)
-    //this.add(route_dir)
   }
 
   add(path: string, handlers?: any) {
     const type = this.routeType(path)
-    console.log(`Route type for ${path} is ${type}.`)
-
     const segments = path === '/' ? ['/'] : path.substring(1).split('/')
-    console.log('segments of route', segments)
     let path_segments: string[] = []
 
     /* Get key for route type node, so we know who this route's parent will be. */
     const route_type_node = this.root.children.find((c) => c.key === type)
     if (!route_type_node) throw Error('No child node found under root that matches')
-    console.log('type', route_type_node)
+
     let previous_node: Node = route_type_node
 
     segments.forEach((s) => {
-      console.log('part', s)
       path_segments.push(s)
 
       /* Find out the type for this path segment. */
       const path_segment_type = this.segmentType(s)
 
-      /* Parent is key of last node created. */
-      console.log('creating node under parent', previous_node.segment || previous_node.key, 'for', 'segment', s)
       /* For handlers: If this is the last segment of the route, add them to the node. */
       previous_node = this.create({ segment: s, type: path_segment_type, parent: previous_node.key, handlers: segments.at(-1) === s ? handlers : null })
     })
-    console.log('path segments processed:', path_segments)
   }
 
   create({ key = id(), segment = '', type = null, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: string | null; parent: string; children?: Node[]; handlers?: any; }) {
-    console.log(`Finding parent with key ${parent}`)
     const parent_node = this.find(parent)
     if (!parent_node) throw new Error(`No parent node found with key ${key}`)
 
     let child_exists: Node | null
 
     if (parent_node.children.length > 0) {
-      console.log(`Parent ${parent} has ${children.length} children`)
       child_exists = this.searchBySegment(segment, parent_node)
-      console.log(`Child exists?`, child_exists)
       if (child_exists) return child_exists
     }
 
-    console.log(`No child exists, creating with key ${key} for segment ${segment}.`)
     const node = new Node({ key, segment, type, parent, children, handlers })
-    
-    console.log(`Adding new child ${JSON.stringify(node, null, 2)} to parent ${JSON.stringify(parent_node, null, 2)}`)
     parent_node.children.push(node)
 
     return node
@@ -128,28 +112,21 @@ export class Tree {
   /* Find a route match. */
   findRoute(path: string, method: string): Handler | null {
     const type = this.routeType(path)
-    console.log(`Route type for ${path} is ${type}.`)
-
     const segments = path === '/' ? ['/'] : path.substring(1).split('/')
-    console.log('segments of route', segments)
-
     let path_segments: string[] = []
 
     /* Get key for route type node, so we know who this route's parent will be. */
     const route_type_node = this.root.children.find((c) => c.key === type)
     if (!route_type_node) throw Error('No child node found under root that matches')
-    console.log('type', route_type_node)
+
     let current_node: Node = route_type_node
     let found_node: Node | null
+
     segments.forEach((s) => {
-      console.log('part', s)
       path_segments.push(s)
 
       /* Find out the type for this path segment. */
       const path_segment_type = this.segmentType(s)
-
-      /* Parent is key of last node created. */
-      console.log('searching node under parent', current_node?.segment || current_node?.key, 'for', 'segment', s)
       
       found_node = this.searchBySegment(s, current_node)
 
