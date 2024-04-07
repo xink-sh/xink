@@ -2,6 +2,7 @@ export type RequestEvent = {
   req: Request;
   headers: Omit<Headers, 'toJSON' | 'count' | 'getAll'>;
   url: Omit<URL, 'createObjectURL' | 'revokeObjectURL' | 'canParse'>;
+  params: { [key: string]: any };
 }
 export type Config = {
   params?: string;
@@ -16,7 +17,25 @@ export type ValidatedConfig = {
   routes: string;
 }
 export type RouteType = 'static' | 'specific' | 'matcher' | 'dynamic' | 'low'
-export type Handler = (req: RequestEvent) => Promise<Response>
+export type SegmentType = {
+  name: 'static' | 'specific' | 'matcher' | 'dynamic' | 'low';
+  id: number;
+}
+export type Handler = (event: RequestEvent) => Promise<Response>
+export type Handlers = {
+  [key: string]: Handler
+}
+export type RouteInfo = {
+  params: { [key: string]: string };
+  handler: Handler;
+}
+export type Static = { [key: string]: any }
+export type Potential = {
+  priority: number;
+  path: string;
+  params: { [key: string]: string };
+  handler: Handler;
+}
 
 /**
  * xink Filesystem Router

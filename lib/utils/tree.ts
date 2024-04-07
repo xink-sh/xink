@@ -1,7 +1,15 @@
 import hexoid from 'hexoid'
-import { Handler, RouteType } from '../../types'
+import { Handlers, Potential, RouteInfo, RouteType, SegmentType } from '../../types'
 
 const id = hexoid()
+
+const type_ids = {
+  static: 0,
+  specific: 1,
+  matcher: 2,
+  dynamic: 3,
+  low: 4
+}
 
 const route_regexp_map = new Map<RouteType, RegExp>()
 /* src/routes/hello/world */
@@ -34,7 +42,7 @@ class Node {
   parent
   children
   handlers
-  constructor({ key = id(), segment = '', type = null, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: string | null; parent: string; children?: Node[]; handlers?: any; }) {
+  constructor({ key = id(), segment = '', type = {}, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: { name?: string; id?: number }; parent: string; children?: Node[]; handlers?: Handlers | null; }) {
     this.key = key
     this.segment = segment
     this.type = type
@@ -44,7 +52,7 @@ class Node {
   }
 }
 
-const types = ['static']
+const types = ['dynamic']
 /* TODO: const types = ['static', 'specific', 'matcher', 'dynamic', 'low'] */
 
 export class Tree {
@@ -52,11 +60,12 @@ export class Tree {
   root: Node = {
     key: 'root',
     segment: '',
-    type: null,
+    type: {},
     parent: 'self',
     children: [],
     handlers: null
   }
+  static = new Map()
   
   constructor() {
     /* Add nodes for types. */
@@ -65,7 +74,15 @@ export class Tree {
 
   add(path: string, handlers?: any) {
     const type = this.routeType(path)
-    const segments = path === '/' ? ['/'] : path.substring(1).split('/')
+
+    /* Add static routes to tree. */
+    if (type === 'static') {
+      console.log('setting', path)
+      this.static.set(path, handlers)
+      return
+    }
+
+    const segments = path.substring(1).split('/')
     let path_segments: string[] = []
 
     /* Get key for route type node, so we know who this route's parent will be. */
@@ -81,11 +98,11 @@ export class Tree {
       const path_segment_type = this.segmentType(s)
 
       /* For handlers: If this is the last segment of the route, add them to the node. */
-      previous_node = this.create({ segment: s, type: path_segment_type, parent: previous_node.key, handlers: segments.at(-1) === s ? handlers : null })
+      previous_node = this.create({ segment: s, type: { ...path_segment_type }, parent: previous_node.key, handlers: segments.at(-1) === s ? handlers : null })
     })
   }
 
-  create({ key = id(), segment = '', type = null, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: string | null; parent: string; children?: Node[]; handlers?: any; }) {
+  create({ key = id(), segment = '', type = {}, parent, children = [], handlers = null }: { key?: string; segment?: string; type?: { name?: string, id?: number }; parent: string; children?: Node[]; handlers?: any; }) {
     const parent_node = this.find(parent)
     if (!parent_node) throw new Error(`No parent node found with key ${key}`)
 
@@ -98,6 +115,7 @@ export class Tree {
 
     const node = new Node({ key, segment, type, parent, children, handlers })
     parent_node.children.push(node)
+    this.sortChildren(parent_node)
 
     return node
   }
@@ -109,35 +127,170 @@ export class Tree {
     return this.searchByKey(key)
   }
 
-  /* Find a route match. */
-  findRoute(path: string, method: string): Handler | null {
-    const type = this.routeType(path)
-    const segments = path === '/' ? ['/'] : path.substring(1).split('/')
-    let path_segments: string[] = []
+  searchByPath(path: string, method: string): RouteInfo | null {
+    const segments = path.substring(1).split('/')
+    let slength = segments.length
 
-    /* Get key for route type node, so we know who this route's parent will be. */
-    const route_type_node = this.root.children.find((c) => c.key === type)
-    if (!route_type_node) throw Error('No child node found under root that matches')
+    /* Process the children of each route type (dyamic, specific, etc) */
+    for (let i = 0; i < types.length; i++) {
+      /* Reset values for next route type */
+      let s = 0
+      let stop = false
+      let current_parent: Node
+      let potentials: Potential[] = []
+      let branches: Node[] = []
+      let priority = 0
+      let params: { [key: string]: any } = {}
+      let ppath = []
 
-    let current_node: Node = route_type_node
-    let found_node: Node | null
-
-    segments.forEach((s) => {
-      path_segments.push(s)
-
-      /* Find out the type for this path segment. */
-      const path_segment_type = this.segmentType(s)
+      current_parent = this.root.children[i]
       
-      found_node = this.searchBySegment(s, current_node)
+      const recurse = (node: Node, preserve: boolean = false): void => {
+        let next = false
+        console.log('recursing node', node.segment)
+        if (!preserve) priority = 0
+        for (let c = 0; c < node.children.length; c++) {
+          console.log('c is ', c)
+          let child = node.children[c]
+          console.log('child is', child.segment)
+          let seg_match = false
+          let seg
 
-      if (!found_node) return null
-      current_node = found_node
-    })
+          console.log('checking segment', child.segment)
+          if (child.segment === segments[s]) {
+            /* Matches static segment. */
+            seg_match = true
+            priority += child.type.id!
+            ppath.push(child.segment)
+            console.log('static match. new priority is', priority, ppath)
+          } else if (child.type.name === 'dynamic') {
+            seg_match = true
+            seg = child.segment
+            priority += child.type.id!
+            ppath.push(child.segment)
+            console.log('dynamic match. new priority is', priority, ppath)
+            /**
+             * Remove leading [ and trailing ]
+             * and add as a param, in case this route matches.
+             */
+            console.log('adding param', segments[s], 'for', child.segment)
+            params[seg.substring(1, seg.length -1)] = segments[s]
+          }
 
-    /* No handlers or no matching handler method for route. */
-    if (!current_node.handlers || typeof current_node.handlers[method] !== 'function') return null
-    
-    return current_node.handlers[method]
+          if (seg_match) {
+            console.log('enter seg_match')
+            if (node.children.length > 0) {
+              console.log('seg_match found children, pushing branch', node.segment)
+              branches.push(node)
+            }
+            s++
+            console.log('seg_match s is now', s)
+            /**
+             * This is the last segment of the path and it's an endpoint,
+             * implying we found a route.
+             */
+            if (s === slength && child.handlers && typeof child.handlers[method] === 'function') {
+              /* Found route match, check next child for same segment. */
+              next = true
+              s--
+              potentials.push({
+                priority,
+                path: ppath.join('/'),
+                params: structuredClone(params),
+                handler: child.handlers[method]
+              })
+
+              console.log('found route match. s is', s, 'next is true,', 'potentials is', potentials)
+              if (c + 1 === node.children.length) {
+                /**
+                 * Last child, matched.
+                 * 
+                 * Subtract priority of child and parent, 
+                 * parent from branches,
+                 * pop child and parent from potential path.
+                 */
+                priority -= child.type.id! + branches.at(-1)?.type.id!
+                branches.pop()
+                ppath.pop()
+                ppath.pop()
+                s--
+                console.log('child', child.segment, 'is last child of', node.segment, 'new priority is', priority, 'popping last branch', 's is', s)
+              } else {
+                /* Remove this segment's param, but keep parent params; in case the parent has more children which could match. */
+                if (seg) {
+                  console.log('params before delete', params)
+                  delete params[seg.substring(1, seg.length -1)]
+                  console.log('params after delete', params)
+                }
+                ppath.pop()
+                priority -= child.type.id!
+                console.log('child', child.segment, 'is not last child of', node.segment, 'priority is now', priority)
+              }
+            } else if (s === slength) {
+              console.log('No match, and this is the last possible segment. Stopping.')
+              /* Reached the possible path depth of this branch and either found nothing or no matching method. */
+              stop = true
+              return
+            }
+            if (stop) {
+              console.log('Detected stop, returning.')
+              return
+            }
+
+            /* Keep going down this branch. */
+            if (!next) {
+              console.log('next is false. recurse child')
+              recurse(child, true)
+            }
+          } else {
+            /* Last child, didn't match. Subtract priority of parent, reset, and pop parent from branches. */
+            console.log('no segment match')
+            if (c === node.children.length) {
+              priority -= branches.at(-1)?.type.id!
+              next = false
+              branches.pop()
+              console.log('no segment match, and', c, 'is last child of', node.segment, 'priority is now', priority, 'setting next false, and popping branch')
+            }
+          }
+        }
+        console.log('done processing children of', node.segment, 'for recurse')
+        if (stop) {
+          console.log('detected stop after processing children for recurse. return.')
+          return
+        }
+        if (node.parent === 'root' && potentials) {
+          console.log('found potentials in child', node.key, 'returning.')
+          return
+        }
+      }
+      console.log('recursing', current_parent.segment ?? current_parent.key)
+      recurse(current_parent)
+      console.log('done recursing', current_parent.segment ?? current_parent.key)
+      if (potentials) {
+        /* Determine best route. */
+        console.log('determining best route', potentials)
+        potentials.sort((a, b) => {
+          if (a.priority < b.priority) return -1
+          if (a.priority > b.priority) return 1
+          return 0
+        })
+      }
+      console.log('potentials, after sort:', potentials)
+      const first = potentials[0]
+      let finalists = potentials.filter((p) => p.priority === first.priority)
+      console.log('finalists are', finalists)
+      // if (finalists.length > 1) {
+      //   /* Break tie alphabetically. */
+      //   finalists.sort((a, b) => {
+      //     if (a.path < b.path) return -1
+      //     if (a.path > b.path) return 1
+      //     return 0
+      //   })
+      // }
+      return finalists[0]
+    }
+
+    return null
   }
 
   searchByKey(key: string, node = this.root): Node | null {
@@ -162,23 +315,20 @@ export class Tree {
 
     depthFirst(node)
 
-    if (!target_node) {
-      return null
-    } else {
-      return target_node
-    }
+    return target_node
   }
 
+  /**
+   * Searches the children of current node for a static match and returns.
+   */
   searchBySegment(segment: string, node = this.root): Node | null {
     if (!node) throw new Error('Cannot search: node is falsey.')
 
     let target_node = null
-    let found = false
 
     const widthFirst = (current: Node) => {
       for (let i = 0; i < current.children.length; i++) {
         if (current.children[i].segment === segment) {
-          found = true
           target_node = current.children[i]
           break
         }
@@ -187,11 +337,7 @@ export class Tree {
 
     widthFirst(node)
 
-    if (!target_node) {
-      return null
-    } else {
-      return target_node
-    }
+    return target_node
   }
 
   /* Identify the route type. */
@@ -206,13 +352,22 @@ export class Tree {
   }
 
   /* Identify the segment type. */
-  segmentType(segment: string): RouteType {
-    if (segment === '/') return 'static'
+  segmentType(segment: string): SegmentType {
+    if (segment === '/') return { name: 'static', id: 0 }
 
     for (const [key, value] of segment_regexp_map) {
       const match = value.test(segment)
-      if (match) return key
+      if (match) return { name: key, id: type_ids[key] }
     }
     throw new Error(`Segment ${segment} is invalid.`)
+  }
+
+  sortChildren(node: Node): Node {
+    node.children.sort((a, b) => {
+      if (a.type.id! < b.type.id!) return -1
+      if (a.type.id! > b.type.id!) return 1
+      return 0
+    })
+    return node
   }
 }

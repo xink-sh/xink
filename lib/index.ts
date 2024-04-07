@@ -20,7 +20,7 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 
   c = config ? validateConfig(config) : CONFIG
   const routes_dir = c.routes
-
+  
   try {
     statSync(join(cwd, routes_dir)).isDirectory()
   } catch (err) {
@@ -53,12 +53,17 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
  * xink Filesystem Router
  */
 export const xink = async ({ req }: { req: Request }): Promise<Response> => {
-  const { headers, url } = parseRequest(req)
   const method = req.method
-  const to_match = join(c.routes, url.pathname)
-  const matched = tree.findRoute(to_match.substring(c.routes.length), method)
+  const url = new URL(req.url)
 
-  if (!matched) return new Response('Not Found', { status: 404 })
+  const maybe_static = tree.static.get(url.pathname)
+  if (maybe_static && typeof maybe_static[method] === 'function')
+    return maybe_static[method]({ req, headers: req.headers, url, params: {} })
+    
+  const matched = tree.searchByPath(url.pathname, method)
 
-  return matched({ req, headers, url })
+  if (matched)
+    return matched.handler({ req, headers: req.headers, url, params: matched.params })
+
+  return new Response('Not Found', { status: 404 })
 }

@@ -4,6 +4,7 @@ export const parseRequest = (req: Request): RequestEvent => {
   return {
     req,
     headers: req.headers,
-    url: new URL(req.url)
+    url: new URL(req.url),
+    params: {}
   }
 }
