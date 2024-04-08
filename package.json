@@ -9,8 +9,7 @@
   ],
   "exports": {
     ".": {
-      "default": "./index.js",
-      "import": "./exports/index.js",
+      "import": "./index.js",
       "types": "./types.d.ts"
     }
   },
@@ -20,7 +19,7 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "bun build --entrypoints ./lib/index.ts ./lib/exports/index.ts --outdir ./dist && tsc && cp ./types.d.ts ./dist/types.d.ts",
+    "build": "bun build --entrypoints ./lib/exports/index.ts --outdir ./dist && tsc && cp ./types.d.ts ./dist/types.d.ts",
     "prep": "cp ./package.json ./dist/package.json && cp ./README.md ./dist/README.md"
   },
   "dependencies": {
