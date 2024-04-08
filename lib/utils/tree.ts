@@ -129,7 +129,7 @@ export class Tree {
 
   searchByPath(path: string, method: string): RouteInfo | null {
     const segments = path.substring(1).split('/')
-    let slength = segments.length
+    const slength = segments.length
 
     /* Process the children of each route type (dyamic, specific, etc) */
     for (let i = 0; i < types.length; i++) {
@@ -146,39 +146,36 @@ export class Tree {
       current_parent = this.root.children[i]
       
       const recurse = (node: Node, preserve: boolean = false): void => {
-        let next = false
+        let next_child = false
         console.log('recursing node', node.segment)
         if (!preserve) priority = 0
         for (let c = 0; c < node.children.length; c++) {
-          console.log('c is ', c)
           let child = node.children[c]
-          console.log('child is', child.segment)
           let seg_match = false
-          let seg
+          let seg = ''
+          let param_name = ''
 
           console.log('checking segment', child.segment)
           if (child.segment === segments[s]) {
             /* Matches static segment. */
             seg_match = true
-            priority += child.type.id!
-            ppath.push(child.segment)
-            console.log('static match. new priority is', priority, ppath)
           } else if (child.type.name === 'dynamic') {
             seg_match = true
             seg = child.segment
-            priority += child.type.id!
-            ppath.push(child.segment)
-            console.log('dynamic match. new priority is', priority, ppath)
             /**
              * Remove leading [ and trailing ]
              * and add as a param, in case this route matches.
              */
+            param_name = seg.substring(1, seg.length -1)
             console.log('adding param', segments[s], 'for', child.segment)
-            params[seg.substring(1, seg.length -1)] = segments[s]
+            params[param_name] = segments[s]
           }
 
           if (seg_match) {
             console.log('enter seg_match')
+            priority += child.type.id!
+            ppath.push(child.segment)
+            console.log('match! new priority is', priority, 'path is', ppath)
             if (node.children.length > 0) {
               console.log('seg_match found children, pushing branch', node.segment)
               branches.push(node)
@@ -191,22 +188,24 @@ export class Tree {
              */
             if (s === slength && child.handlers && typeof child.handlers[method] === 'function') {
               /* Found route match, check next child for same segment. */
-              next = true
+              next_child = true
               s--
-              potentials.push({
-                priority,
-                path: ppath.join('/'),
-                params: structuredClone(params),
-                handler: child.handlers[method]
-              })
-
-              console.log('found route match. s is', s, 'next is true,', 'potentials is', potentials)
+              if (potentials.length === 0 || priority <= potentials[0].priority) {
+                potentials.push({
+                  priority,
+                  path: ppath.join('/'),
+                  params: structuredClone(params),
+                  handler: child.handlers[method]
+                })
+                console.log('found route match. s is', s, 'next_child is true,', 'potentials is', potentials)
+              }
+              
               if (c + 1 === node.children.length) {
                 /**
                  * Last child, matched.
                  * 
                  * Subtract priority of child and parent, 
-                 * parent from branches,
+                 * remove parent from branches,
                  * pop child and parent from potential path.
                  */
                 priority -= child.type.id! + branches.at(-1)?.type.id!
@@ -214,12 +213,17 @@ export class Tree {
                 ppath.pop()
                 ppath.pop()
                 s--
+                if (seg) {
+                  console.log('params before delete', params)
+                  delete params[param_name]
+                  console.log('params after delete', params)
+                }
                 console.log('child', child.segment, 'is last child of', node.segment, 'new priority is', priority, 'popping last branch', 's is', s)
               } else {
                 /* Remove this segment's param, but keep parent params; in case the parent has more children which could match. */
                 if (seg) {
                   console.log('params before delete', params)
-                  delete params[seg.substring(1, seg.length -1)]
+                  delete params[param_name]
                   console.log('params after delete', params)
                 }
                 ppath.pop()
@@ -230,16 +234,18 @@ export class Tree {
               console.log('No match, and this is the last possible segment. Stopping.')
               /* Reached the possible path depth of this branch and either found nothing or no matching method. */
               stop = true
+              params = {}
               return
             }
             if (stop) {
+              /* do we need this? */
               console.log('Detected stop, returning.')
               return
             }
 
             /* Keep going down this branch. */
-            if (!next) {
-              console.log('next is false. recurse child')
+            if (!next_child) {
+              console.log('next_child is false. recurse child')
               recurse(child, true)
             }
           } else {
@@ -247,7 +253,7 @@ export class Tree {
             console.log('no segment match')
             if (c === node.children.length) {
               priority -= branches.at(-1)?.type.id!
-              next = false
+              next_child = false
               branches.pop()
               console.log('no segment match, and', c, 'is last child of', node.segment, 'priority is now', priority, 'setting next false, and popping branch')
             }
@@ -263,31 +269,30 @@ export class Tree {
           return
         }
       }
-      console.log('recursing', current_parent.segment ?? current_parent.key)
+
       recurse(current_parent)
-      console.log('done recursing', current_parent.segment ?? current_parent.key)
+
       if (potentials) {
-        /* Determine best route. */
-        console.log('determining best route', potentials)
         potentials.sort((a, b) => {
           if (a.priority < b.priority) return -1
           if (a.priority > b.priority) return 1
           return 0
         })
+
+        return potentials[0]
+        //const first = potentials[0]
+        //let finalists = potentials.filter((p) => p.priority === first.priority)
+        //console.log('finalists are', finalists)
+        // if (finalists.length > 1) {
+        //   /* Break tie alphabetically. */
+        //   finalists.sort((a, b) => {
+        //     if (a.path < b.path) return -1
+        //     if (a.path > b.path) return 1
+        //     return 0
+        //   })
+        // }
+        //return finalists[0]
       }
-      console.log('potentials, after sort:', potentials)
-      const first = potentials[0]
-      let finalists = potentials.filter((p) => p.priority === first.priority)
-      console.log('finalists are', finalists)
-      // if (finalists.length > 1) {
-      //   /* Break tie alphabetically. */
-      //   finalists.sort((a, b) => {
-      //     if (a.path < b.path) return -1
-      //     if (a.path > b.path) return 1
-      //     return 0
-      //   })
-      // }
-      return finalists[0]
     }
 
     return null

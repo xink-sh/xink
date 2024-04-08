@@ -3,7 +3,7 @@ import { parseRequest } from "./utils/router.js"
 import { join } from "path"
 import { readdirSync, statSync } from "node:fs"
 import { Tree } from "./utils/tree.js"
-import { Config, ValidatedConfig } from "../types.js"
+import { Config, Handler, ValidatedConfig } from "../types.js"
 import { validateConfig } from "./utils/generic.js"
 import { CONFIG } from "./constants.js"
 
@@ -57,13 +57,15 @@ export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const url = new URL(req.url)
 
   const maybe_static = tree.static.get(url.pathname)
-  if (maybe_static && typeof maybe_static[method] === 'function')
-    return maybe_static[method]({ req, headers: req.headers, url, params: {} })
-    
-  const matched = tree.searchByPath(url.pathname, method)
-
-  if (matched)
-    return matched.handler({ req, headers: req.headers, url, params: matched.params })
+  if (!maybe_static) {
+    const matched = tree.searchByPath(url.pathname, method)
+    if (matched)
+      return matched.handler({ req, headers: req.headers, url, params: matched.params })
+  } else {
+    const handler: Handler = maybe_static[method]
+    if (typeof handler === 'function')
+      return handler({ req, headers: req.headers, url, params: {} })
+  }
 
   return new Response('Not Found', { status: 404 })
 }
