@@ -1,6 +1,6 @@
 # xink
 
-This deliciousness is still baking. Support for static routes was just added in v0.1.0-next.1
+This deliciousness is still baking. Not ready for testing.
 
 xink is a filesystem router designed for APIs. There are no plans for client-side use. I originally thought it would be exclusive to Bun, but so far I haven't used any Bun-specific APIs.
 
