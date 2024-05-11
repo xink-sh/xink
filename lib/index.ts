@@ -36,8 +36,14 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 
     for (const f of directories) {
       if (f === 'endpoint.ts') {
-        const handlers = await import(`${join(cwd, dir, f)}`)
-        tree.add(path, handlers)
+        const module = await import(`${join(cwd, dir, f)}`)
+        const handlers = Object.entries(module)
+
+        handlers.forEach(([key, value]) => {
+          if (typeof value !== 'function')
+            throw new Error(`Handler ${key} for ${path} is not a function`)
+        })
+        tree.add(path, module)
       } else {
         const absolute_path = join(dir, f)
         await readDirRecursive(absolute_path)
@@ -63,8 +69,7 @@ export const xink = async ({ req }: { req: Request }): Promise<Response> => {
       return matched.handler({ req, headers: req.headers, url, params: matched.params })
   } else {
     const handler: Handler = maybe_static[method]
-    if (typeof handler === 'function')
-      return handler({ req, headers: req.headers, url, params: {} })
+    return handler({ req, headers: req.headers, url, params: {} })
   }
 
   return new Response('Not Found', { status: 404 })
