@@ -9,10 +9,6 @@ export const json = (data: any, init?: ResponseInit | undefined): Response => {
   if (!headers.has('content-type'))
     headers.set('content-type', 'application/json')
 
-  if (typeof Response.json !== 'undefined')
-    return Response.json(body, { ...init, headers })
-  
-  /* Deprecate when json static method is widely supported */
   return new Response(body, { ...init, headers })
 }
 
