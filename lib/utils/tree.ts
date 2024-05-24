@@ -65,7 +65,7 @@ export class Tree {
     children: [],
     handlers: null
   }
-  static = new Map()
+  static = new Map<string, Record<string, any>>()
   
   constructor() {
     /* Add nodes for types. */

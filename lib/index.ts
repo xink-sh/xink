@@ -6,6 +6,7 @@ import { Tree } from "./utils/tree.js"
 import { Config, Handler, ValidatedConfig } from "../types.js"
 import { validateConfig } from "./utils/generic.js"
 import { CONFIG } from "./constants.js"
+import { ModuleFormat } from "bun"
 
 let c: ValidatedConfig
 let tree: Tree
@@ -68,8 +69,9 @@ export const xink = async ({ req }: { req: Request }): Promise<Response> => {
     if (matched)
       return matched.handler({ req, headers: req.headers, url, params: matched.params })
   } else {
-    const handler: Handler = maybe_static[method]
-    return handler({ req, headers: req.headers, url, params: {} })
+    const handler: Handler | undefined = maybe_static[method]
+    if (handler)
+      return handler({ req, headers: req.headers, url, params: {} })
   }
 
   return new Response('Not Found', { status: 404 })
