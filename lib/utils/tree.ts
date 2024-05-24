@@ -108,6 +108,7 @@ export class Tree {
 
     let child_exists: Node | null
 
+    /* Does this path segment already exist for the parent? */
     if (parent_node.children.length > 0) {
       child_exists = this.searchBySegment(segment, parent_node)
       if (child_exists) return child_exists
@@ -115,6 +116,8 @@ export class Tree {
 
     const node = new Node({ key, segment, type, parent, children, handlers })
     parent_node.children.push(node)
+
+    /* Resort children by type id (static, specific, etc), for priority selection when traversing tree. */
     this.sortChildren(parent_node)
 
     return node
