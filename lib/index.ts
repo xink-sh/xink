@@ -63,16 +63,9 @@ export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const method = req.method
   const url = new URL(req.url)
 
-  const maybe_static = tree.static.get(url.pathname)
-  if (!maybe_static) {
-    const matched = tree.searchByPath(url.pathname, method)
-    if (matched)
-      return matched.handler({ req, headers: req.headers, url, params: matched.params })
-  } else {
-    const handler: Handler | undefined = maybe_static[method]
-    if (handler)
-      return handler({ req, headers: req.headers, url, params: {} })
-  }
+  const matched = tree.searchByPath(url.pathname, method)
+  if (matched)
+    return matched.handler({ req, headers: req.headers, url, params: matched.params })
 
   return new Response('Not Found', { status: 404 })
 }
