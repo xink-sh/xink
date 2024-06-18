@@ -1,3 +1,5 @@
+import { MatchFunction } from "path-to-regexp";
+
 export type RequestEvent = {
   req: Request;
   headers: Omit<Headers, 'toJSON' | 'count' | 'getAll'>;
@@ -27,7 +29,7 @@ export type Handlers = {
 }
 export type RouteInfo = {
   params: { [key: string]: string };
-  handler: Handler;
+  handler: Handler | null;
 }
 export type Static = { [key: string]: any }
 export type Potential = {
@@ -36,6 +38,12 @@ export type Potential = {
   params: { [key: string]: string };
   handler: Handler;
 }
+export type Low = {
+  type: number;
+  match: MatchFunction;
+  handlers: Handlers
+}
+export type Key = string | number;
 
 /**
  * xink Filesystem Router

@@ -1,24 +1,19 @@
 #!/usr/bin/env bun
-import { parseRequest } from "./utils/router.js"
 import { join } from "path"
 import { readdirSync, statSync } from "node:fs"
 import { Tree } from "./utils/tree.js"
-import { Config, Handler, ValidatedConfig } from "../types.js"
+import { Config, ValidatedConfig } from "../types.js"
 import { validateConfig } from "./utils/generic.js"
 import { CONFIG } from "./constants.js"
-import { ModuleFormat } from "bun"
+import { addPath, getPath, map } from "./utils/router.js"
 
 let c: ValidatedConfig
-let tree: Tree
 const cwd = process.cwd()
 
 /**
  * Initialize routes.
  */
 export const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> => {
-  /* Initialize route decision tree. */
-  tree = new Tree()
-
   c = config ? validateConfig(config) : CONFIG
   const routes_dir = c.routes
   
@@ -44,7 +39,8 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
           if (typeof value !== 'function')
             throw new Error(`Handler ${key} for ${path} is not a function`)
         })
-        tree.add(path, module)
+
+        addPath(path, module)
       } else {
         const absolute_path = join(dir, f)
         await readDirRecursive(absolute_path)
@@ -54,6 +50,7 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 
   /* Read routes directory. */
   await readDirRecursive(`${routes_dir}`)
+  //console.log(map.get(1).root)
 }
 
 /**
@@ -63,8 +60,8 @@ export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const method = req.method
   const url = new URL(req.url)
 
-  const matched = tree.searchByPath(url.pathname, method)
-  if (matched)
+  const matched = getPath(url.pathname, method)
+  if (matched && matched.handler)
     return matched.handler({ req, headers: req.headers, url, params: matched.params })
 
   return new Response('Not Found', { status: 404 })
