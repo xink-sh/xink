@@ -1,21 +1,4 @@
-import { Handler } from "../../types";
-
-type Params = { [key: string]: string }
-type Route = { store: Store; params: Params; } | null;
-type Store = { [key: string]: Handler }
-type StoreFactory = () => Store
-type Node = {
-  segment: string;
-  store: Store | null;
-  static_children: Map<number, Node> | null;
-  parametric_child: ParametricNode | null;
-  wildcard_store: Store | null;
-}
-type ParametricNode = {
-  param_name: string;
-  store: Store | null;
-  static_child: Node | null;
-}
+import { Node, Params, Route, Store, StoreFactory } from "../../types";
 
 function createNode(segment: string, static_children?: Node[] ): Node {
   return {

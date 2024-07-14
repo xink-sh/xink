@@ -58,3 +58,24 @@ export function initRouter({}: { config?: Config } = {}): void
 
 export function json(data: any, init?: ResponseInit | undefined): Response
 export function text(data: string, init?: ResponseInit | undefined): Response
+
+
+/**
+ * Medley types.
+ */
+export type Params = { [key: string]: string }
+export type Route = { store: Store; params: Params; } | null;
+export type Store = { [key: string]: Handler }
+export type StoreFactory = () => Store
+export type Node = {
+  segment: string;
+  store: Store | null;
+  static_children: Map<number, Node> | null;
+  parametric_child: ParametricNode | null;
+  wildcard_store: Store | null;
+}
+export type ParametricNode = {
+  param_name: string;
+  store: Store | null;
+  static_child: Node | null;
+}
