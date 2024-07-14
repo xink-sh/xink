@@ -1,10 +1,10 @@
 # xink
 
-This deliciousness is still baking. Not ready for testing.
+This deliciousness is still baking.
 
-xink is a filesystem router designed for APIs. There are no plans for client-side use. I originally thought it would be exclusive to Bun, but so far I haven't used any Bun-specific APIs.
+xink is a filesystem router designed for APIs. It's currently using [Medley router](https://github.com/medleyjs/router) behind the scenes.
 
-The router is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) implementation of filesystem routing. For example, an endpoint file needs to export a function for each HTTP method it will serve.
+xink is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) implementation of filesystem routing. For example, an endpoint file needs to export a function for each HTTP method it will serve.
 
 ```js
 /* src/routes/endpoint.ts */
@@ -20,7 +20,7 @@ export const POST = async ({ req, url }) => {
 }
 ```
 
-Features like `[...rest]` parameters, `[[optional]]` parameters, and `[param=matchers]` are planned.
+Features like `[[optional]]` parameters, and `[param=matchers]` are planned.
 
 ## Origins
 Pronounced "zinc", the name is based on the Georgian word [khinkali](https://en.wikipedia.org/wiki/Khinkali); which is a type of dumpling in the country of Georgia. The transcription is /ˈxink'ali/. To be clear: khinkali's beginning proununciation is dissimilar from "zinc". 
