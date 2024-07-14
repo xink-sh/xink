@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 import { join } from "path"
 import { readdirSync, statSync } from "node:fs"
-import { Tree } from "./utils/tree.js"
-import { Config, ValidatedConfig } from "../types.js"
+import { Config, Handler, ValidatedConfig } from "../types.js"
 import { validateConfig } from "./utils/generic.js"
 import { CONFIG } from "./constants.js"
-import { addPath, getPath, map } from "./utils/router.js"
+import { Router } from "./utils/medley.js"
 
 let c: ValidatedConfig
 const cwd = process.cwd()
+const router = new Router()
 
 /**
  * Initialize routes.
@@ -28,19 +28,38 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
    */
   const readDirRecursive = async (dir: string): Promise<void> => {
     const directories = readdirSync(dir)
-    const path = dir.substring(routes_dir.length) || '/'
+    let path = dir.substring(routes_dir.length) || '/'
+
+    /* Convert matcher segments. */
+    /**
+     * Need to import what the mather would be, from src/params/<matcher-name>.js.
+     * @example export function match(param) { return /^\d+$/.test(param); }
+     */
+    //path = path.replace(/(?:\[{1}\.{3}[a-zA-Z]+=[a-zA-Z]+\]{1}|\[{1,2}[a-zA-Z]+=[a-zA-Z]+\]{1,2})/, '')
+
+    /* Convert optional segments. */
+    path = path.replace(/\[{2}([a-zA-A]+)\]{2}/g, ':$1?')
+
+    /* Convert rest segments. */
+    path = path.replace(/\[{1}\.{3}([a-zA-Z]+)\]{1}/g, '*')
+
+    /* Convert specific and dynamic segments. */
+    path = path.replace(/\[{1}/g, ':')
+    path = path.replace(/\]{1}/g, '')
 
     for (const f of directories) {
       if (f === 'endpoint.ts') {
         const module = await import(`${join(cwd, dir, f)}`)
-        const handlers = Object.entries(module)
+        const handlers: [string, Handler][] = Object.entries(module)
+        //console.log('registering', path)
+        const store = router.register(path)
 
         handlers.forEach(([key, value]) => {
           if (typeof value !== 'function')
             throw new Error(`Handler ${key} for ${path} is not a function`)
-        })
 
-        addPath(path, module)
+          store[key] = value
+        })
       } else {
         const absolute_path = join(dir, f)
         await readDirRecursive(absolute_path)
@@ -50,7 +69,6 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 
   /* Read routes directory. */
   await readDirRecursive(`${routes_dir}`)
-  //console.log(map.get(1).root)
 }
 
 /**
@@ -59,10 +77,12 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const method = req.method
   const url = new URL(req.url)
-
-  const matched = getPath(url.pathname, method)
-  if (matched && matched.handler)
-    return matched.handler({ req, headers: req.headers, url, params: matched.params })
+  const route = router.find(url.pathname)
+  //console.log('route', route)
+  if (route && route.store[method]) {
+    const handler = route.store[method]
+    return handler({ req, headers: req.headers, url, params: route.params })
+  }
 
   return new Response('Not Found', { status: 404 })
 }

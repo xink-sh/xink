@@ -57,7 +57,7 @@ export const addPath = (path: string, handlers?: any) => {
   path = path.replace(/\[{2}([a-zA-A]+)\]{2}/g, ':$1?')
 
   /* Convert rest segments. */
-  path = path.replace(/\[{1}\.{3}([a-zA-Z]+)\]{1}/g, ':$1*')
+  path = path.replace(/\[{1}\.{3}([a-zA-Z]+)\]{1}/g, '*')
 
   /* Convert specific and dynamic segments. */
   path = path.replace(/\[{1}/g, ':')
