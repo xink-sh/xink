@@ -51,7 +51,6 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
       if (f === 'endpoint.ts') {
         const module = await import(`${join(cwd, dir, f)}`)
         const handlers: [string, Handler][] = Object.entries(module)
-        //console.log('registering', path)
         const store = router.register(path)
 
         handlers.forEach(([key, value]) => {
@@ -75,14 +74,11 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
  * xink Filesystem Router
  */
 export const xink = async ({ req }: { req: Request }): Promise<Response> => {
-  const method = req.method
   const url = new URL(req.url)
   const route = router.find(url.pathname)
-  //console.log('route', route)
-  if (route && route.store[method]) {
-    const handler = route.store[method]
-    return handler({ req, headers: req.headers, url, params: route.params })
-  }
+  const handler = route?.store[req.method]
 
-  return new Response('Not Found', { status: 404 })
+  if (!handler) return new Response('Not Found', { status: 404 })
+
+  return handler({ req, headers: req.headers, url, params: route.params })
 }
