@@ -63,16 +63,6 @@ export class Router {
       throw new Error('Custom `storeFactory` must not return `null`.');
     }
 
-    // const customStoreFactory = storeFactory;
-    // storeFactory = () => {
-    //   const store = customStoreFactory();
-    //   if (store === null) {
-    //     throw new Error('Custom `storeFactory` must not return `null`.');
-    //   }
-    //   return store;
-    // };
-
-
     this._root = createNode('/');
     this._storeFactory = storeFactory;
   }
@@ -221,11 +211,6 @@ export class Router {
 
     return matchRoute(url, url_length, this._root, 0);
   }
-
-  // debugTree() {
-  //   return require('object-treeify')(debugNode(this._root))
-  //     .replace(/^.{3}/gm, ''); // Remove the first 3 characters of every line
-  // }
 }
 
 function matchRoute(url: string, url_length: number, node: Node, start_index: number): Route {
@@ -319,55 +304,3 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
 
   return null;
 }
-
-// function debugNode(node: Node): any {
-//   if (node.store === null && node.static_children === null) { // Can compress output better
-//     if (node.parametric_child === null) { // There is only a wildcard store
-//       return { [node.segment + '* (s)']: null };
-//     }
-
-//     if (node.wildcard_store === null) { // There is only a parametric child
-//       if (node.parametric_child.static_child === null) {
-//         return {
-//           [node.segment + ':' + node.parametric_child.param_name + ' (s)']: null,
-//         };
-//       }
-
-//       if (node.parametric_child.store === null) {
-//         return {
-//           [node.segment + ':' + node.parametric_child.param_name]:
-//             debugNode(node.parametric_child.static_child)
-//         };
-//       }
-//     }
-//   }
-
-//   const child_routes: { [key: string]: Node | null } = {};
-
-//   if (node.static_children !== null) {
-//     for (const child_node of node.static_children.values()) {
-//       Object.assign(child_routes, debugNode(child_node));
-//     }
-//   }
-
-//   if (node.parametric_child !== null) {
-//     const { parametric_child } = node;
-//     const label = ':' + parametric_child.param_name + debugStore(parametric_child.store);
-
-//     child_routes[label] = parametric_child.static_child === null
-//       ? null
-//       : debugNode(parametric_child.static_child);
-//   }
-
-//   if (node.wildcard_store !== null) {
-//     child_routes['* (s)'] = null;
-//   }
-
-//   return {
-//     [node.segment + debugStore(node.store)]: child_routes,
-//   };
-// }
-
-// function debugStore(store: Store | null): string {
-//   return store === null ? '' : ' (s)';
-// }
