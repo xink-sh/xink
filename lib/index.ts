@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { join } from "path"
 import { readdirSync, statSync } from "node:fs"
-import { Config, Handler, ValidatedConfig } from "../types.js"
+import { Config, Handler, Matcher, ValidatedConfig } from "../types.js"
 import { validateConfig } from "./utils/generic.js"
 import { CONFIG } from "./constants.js"
 import { Router } from "./utils/medley.js"
@@ -16,12 +16,32 @@ const router = new Router()
 export const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> => {
   c = config ? validateConfig(config) : CONFIG
   const routes_dir = c.routes
+  const params_dir = c.params
   
   try {
     statSync(join(cwd, routes_dir)).isDirectory()
   } catch (err) {
     throw new Error(`Routes directory ${routes_dir} does not exist.`)
   }
+
+  const readParamsDir = async (dir: string): Promise<void> => {
+    const files = readdirSync(dir)
+    console.log('params files', files)
+
+    for (const f of files) {
+      const module = await import(`${join(cwd, dir, f)}`)
+      console.log('module', module)
+      const type = f.split('.')[0]
+      console.log('param type is', type)
+      const matcher: Matcher = module['match']
+
+      if (matcher)
+        router.setMatcher(type, matcher)
+    }
+  }
+
+  /* Read params directory. */
+  await readParamsDir(params_dir)
 
   /**
    * Reference: https://stackoverflow.com/a/63111390
@@ -32,16 +52,16 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 
     /* Convert matcher segments. */
     /**
-     * Need to import what the mather would be, from src/params/<matcher-name>.js.
+     * Need to import what the matcher would be, from src/params/<matcher-name>.js.
      * @example export function match(param) { return /^\d+$/.test(param); }
      */
-    //path = path.replace(/(?:\[{1}\.{3}[a-zA-Z]+=[a-zA-Z]+\]{1}|\[{1,2}[a-zA-Z]+=[a-zA-Z]+\]{1,2})/, '')
+    path = path.replace(/\[{1}([\w.~-]+?=[a-zA-Z]+?)\]{1}/g, ':$1')
 
     /* Convert optional segments. */
-    path = path.replace(/\[{2}([a-zA-A]+)\]{2}/g, ':$1?')
+    path = path.replace(/\[{2}([\w.~-]+?)\]{2}/g, ':$1?')
 
     /* Convert rest segments. */
-    path = path.replace(/\[{1}\.{3}([a-zA-Z]+)\]{1}/g, '*')
+    path = path.replace(/\[{1}\.{3}[\w.~-]+?\]{1}/g, '*')
 
     /* Convert specific and dynamic segments. */
     path = path.replace(/\[{1}/g, ':')

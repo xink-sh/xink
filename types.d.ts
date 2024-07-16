@@ -74,7 +74,9 @@ export type Node = {
   parametric_child: ParametricNode | null;
   wildcard_store: Store | null;
 }
+export type Matcher = ((param: string) => boolean) | null
 export type ParametricNode = {
+  matcher: Matcher;
   param_name: string;
   store: Store | null;
   static_child: Node | null;
