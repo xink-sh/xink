@@ -237,11 +237,11 @@ export class Router {
         param_name = param.slice(1, param.indexOf('='));
         const param_type = param.split('=')[1]
         matcher = this.getMatcher(param_type)
-      } else
+      } else {
         /* Is regular param, remove leading : */
         param_name = param.slice(1);
-
-      console.log('sliced 1 from param, to get param_name', param_name)
+        console.log('sliced 1 from param, to get param_name', param_name)
+      }
 
       if (node.parametric_child === null) {
         console.log('node.parametric_child is null; create')
