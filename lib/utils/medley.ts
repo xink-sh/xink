@@ -36,6 +36,18 @@ function defaultStoreFactory(): Store {
   return Object.create(null);
 }
 
+const sortMap = (data: Map<string, ParametricNode>): Map<string, ParametricNode> => {
+  return new Map([...data].sort((a, b) => {
+    const f = a[1].matcher_type
+    const s = b[1].matcher_type
+    console.log('Sorting', f, s)
+    if (f === s) return 0
+    if (f === null) return 1 /* a should come before b */
+    if (s === null) return -1 /* b should come before a */
+    return f < s ? 1 : -1 
+  }))
+}
+
 export class Router {
   _root: Node
   _storeFactory: StoreFactory
@@ -104,6 +116,7 @@ export class Router {
     let param_segments_index = 0;
 
     for (let i = 0; i < static_segments.length; ++i) {
+      /* At least one static segment. */
       console.log('i is ', i)
       let segment = static_segments[i];
       console.log('Processing path segment', segment)
@@ -111,7 +124,7 @@ export class Router {
 
       if (i > 0) { // Set parametric properties on the node
         const param = param_segments[param_segments_index]
-        console.log('Pre-slice param segment', param)
+        console.log('Pre-slice param segment top', param)
         is_matcher = matcher_regex.test(param)
         console.log(`param ${param} is matcher?`, is_matcher)
         let param_name = ''
@@ -123,10 +136,14 @@ export class Router {
           /* Remove the leading : and anything after and including the = that defines the match type. */
           param_name = param_segments[param_segments_index++].slice(1, param.indexOf('='));
           matcher = this.getMatcher(matcher_type)
+          if (!matcher)
+            throw new Error(
+              `Cannot create route "${path}" with matcher "${matcher_type}", because no definition exists in the params directory.`
+            )
         } else {
           /* Is regular param, remove leading : */
           param_name = param_segments[param_segments_index++].slice(1);
-          console.log('Post-slice param segment', param_name)
+          console.log('Post-slice param segment top', param_name)
         }
 
         if (node.parametric_children === null) {
@@ -151,6 +168,10 @@ export class Router {
         if (!node.parametric_children.has(param_name)) {
           console.log('setting parametric child for param', param_name)
           node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
+
+          /* Sort so that any non-matcher node is last in the map, therefore is checked last when matching. */
+          node.parametric_children = sortMap(node.parametric_children)
+          console.log('parametric children now', node.parametric_children)
         }
         
         const current_parametric_child = node.parametric_children.get(param_name)!
@@ -246,7 +267,7 @@ export class Router {
       let param_name = ''
       let matcher: Matcher = null
       const param = param_segments[param_segments_index];
-      console.log('param is', param)
+      console.log('param is bottom', param)
       is_matcher = matcher_regex.test(param)
       let matcher_type: MatcherType = null
 
@@ -256,10 +277,14 @@ export class Router {
         /* Remove the leading : and anything after and including the = that defines the match type. */
         param_name = param.slice(1, param.indexOf('='));
         matcher = this.getMatcher(matcher_type)
+        if (!matcher)
+          throw new Error(
+            `Cannot create route "${path}" with matcher "${matcher_type}", because no definition exists in the params directory.`
+          )
       } else {
         /* Is regular param, remove leading : */
         param_name = param.slice(1);
-        console.log('sliced 1 from param, to get param_name', param_name)
+        console.log('sliced 1 from param, to get param_name bottom', param_name)
       }
 
       if (node.parametric_children === null) {
@@ -282,6 +307,10 @@ export class Router {
       if (!node.parametric_children.has(param_name)) {
         console.log('setting parametric child for param', param_name)
         node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
+
+        /* Sort so that any non-matcher node is last in the map, therefore is checked last when matching. */
+        node.parametric_children = sortMap(node.parametric_children)
+        console.log('parametric children now', node.parametric_children)
       }
       
       const current_parametric_child = node.parametric_children.get(param_name)!
