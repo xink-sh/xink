@@ -71,12 +71,14 @@ export type Node = {
   segment: string;
   store: Store | null;
   static_children: Map<number, Node> | null;
-  parametric_child: ParametricNode | null;
+  parametric_children: Map<string, ParametricNode> | null;
   wildcard_store: Store | null;
 }
-export type Matcher = ((param: string) => boolean) | null
+export type Matcher = ((param: string) => boolean) | null;
+export type MatcherType = string | null;
 export type ParametricNode = {
   matcher: Matcher;
+  matcher_type: MatcherType;
   param_name: string;
   store: Store | null;
   static_child: Node | null;

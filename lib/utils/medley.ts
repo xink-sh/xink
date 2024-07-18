@@ -1,4 +1,4 @@
-import { Matcher, Node, ParametricNode, Params, Route, Store, StoreFactory } from "../../types";
+import { Matcher, MatcherType, Node, ParametricNode, Params, Route, Store, StoreFactory } from "../../types";
 
 function createNode(segment: string, static_children?: Node[] ): Node {
   return {
@@ -7,7 +7,7 @@ function createNode(segment: string, static_children?: Node[] ): Node {
     static_children: static_children === undefined
       ? null
       : new Map(static_children.map(child => [child.segment.charCodeAt(0), child])),
-    parametric_child: null,
+    parametric_children: null,
     wildcard_store: null
   };
 }
@@ -17,14 +17,15 @@ function cloneNode(node: Node, new_segment: string): Node {
     segment: new_segment,
     store: node.store,
     static_children: node.static_children,
-    parametric_child: node.parametric_child,
+    parametric_children: node.parametric_children,
     wildcard_store: node.wildcard_store,
   };
 }
 
-function createParametricNode(param_name: string, matcher: Matcher = null): ParametricNode {
+function createParametricNode(param_name: string, matcher: Matcher = null, matcher_type: MatcherType = null): ParametricNode {
   return {
     matcher,
+    matcher_type,
     param_name,
     store: null,
     static_child: null,
@@ -63,9 +64,9 @@ export class Router {
     console.log('set', this._matchers.get(type))
   }
 
-  getMatcher(param: string): Matcher | null {
-    console.log('trying to find matcher for', param)
-    const matcher = this._matchers.get(param) ?? null
+  getMatcher(type: string): Matcher | null {
+    console.log('trying to find matcher for', type)
+    const matcher = this._matchers.get(type) ?? null
     console.log('find matcher?', matcher ? 'yes' : 'no')
     return matcher
   }
@@ -103,6 +104,7 @@ export class Router {
     let param_segments_index = 0;
 
     for (let i = 0; i < static_segments.length; ++i) {
+      console.log('i is ', i)
       let segment = static_segments[i];
       console.log('Processing path segment', segment)
       let is_matcher = false;
@@ -114,40 +116,54 @@ export class Router {
         console.log(`param ${param} is matcher?`, is_matcher)
         let param_name = ''
         let matcher: Matcher = null
+        let matcher_type: MatcherType = null
+
         if (is_matcher) {
+          matcher_type = param.split('=')[1]
           /* Remove the leading : and anything after and including the = that defines the match type. */
           param_name = param_segments[param_segments_index++].slice(1, param.indexOf('='));
-          matcher = this.getMatcher(param)
-        } else
+          matcher = this.getMatcher(matcher_type)
+        } else {
           /* Is regular param, remove leading : */
           param_name = param_segments[param_segments_index++].slice(1);
-
-        console.log('Post-slice param segment', param_name)
-
-        if (node.parametric_child === null) {
-          console.log('Found no parametric child, creating...')
-          node.parametric_child = createParametricNode(param_name, matcher);
-          console.log('Parametric child is', node.parametric_child)
-        } else if (node.parametric_child.param_name !== param_name) {
-          throw new Error(
-            `Cannot create route "${path}" with parameter "${param_name}" ` +
-            'because a route already exists with a different parameter name ' +
-            `("${node.parametric_child.param_name}") in the same location`
-          );
+          console.log('Post-slice param segment', param_name)
         }
 
-        const { parametric_child } = node;
-        console.log('parametric_child from node', parametric_child)
+        if (node.parametric_children === null) {
+          console.log('Found no parametric child top, creating...')
+          node.parametric_children = new Map()
+          node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
+          console.log('Parametric child is', node.parametric_children.get(param_name))
+          // TODO sort parametric children so null matcher is last, for fallback
+        } else {
+          node.parametric_children.forEach((c) => {
+            if (c.param_name !== param_name && c.matcher_type === matcher_type)
+              throw new Error(
+                `Cannot create route "${path}" with parameter "${param_name}" and matcher type "${matcher_type}"` +
+                'because a route already exists with a different parameter name and same matcher type ' +
+                `("${c.param_name}") in the same location`
+              );
+          })
+        }
 
-        if (parametric_child.static_child === null) {
+        //const { parametric_children } = node;
+        console.log('parametric_children from node', node.parametric_children)
+        if (!node.parametric_children.has(param_name)) {
+          console.log('setting parametric child for param', param_name)
+          node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
+        }
+        
+        const current_parametric_child = node.parametric_children.get(param_name)!
+
+        if (current_parametric_child?.static_child === null) {
           console.log('Parametric child has no static child; creating...')
-          node = parametric_child.static_child = createNode(segment);
+          node = current_parametric_child.static_child = createNode(segment);
           console.log('Parametric childs static child is now', node)
           continue;
         }
 
         // TODO can this be an else for above?
-        node = parametric_child.static_child;
+        node = current_parametric_child?.static_child;
         console.log('Parametric childs static child is', node)
       }
 
@@ -232,37 +248,50 @@ export class Router {
       const param = param_segments[param_segments_index];
       console.log('param is', param)
       is_matcher = matcher_regex.test(param)
+      let matcher_type: MatcherType = null
+
       if (is_matcher) {
+        console.log('is matcher')
+        matcher_type = param.split('=')[1]
         /* Remove the leading : and anything after and including the = that defines the match type. */
         param_name = param.slice(1, param.indexOf('='));
-        const param_type = param.split('=')[1]
-        matcher = this.getMatcher(param_type)
+        matcher = this.getMatcher(matcher_type)
       } else {
         /* Is regular param, remove leading : */
         param_name = param.slice(1);
         console.log('sliced 1 from param, to get param_name', param_name)
       }
 
-      if (node.parametric_child === null) {
-        console.log('node.parametric_child is null; create')
-        node.parametric_child = createParametricNode(param_name, matcher);
-        console.log('created parametric child is', node.parametric_child)
-      } else if (node.parametric_child.param_name !== param_name) {
-        console.log(node.parametric_child.param_name, 'is not equal to', param_name)
-        throw new Error(
-          `Cannot create route "${path}" with parameter "${param_name}" ` +
-          'because a route already exists with a different parameter name ' +
-          `("${node.parametric_child.param_name}") in the same location`
-        );
+      if (node.parametric_children === null) {
+        console.log('Found no parametric child bottom, creating...')
+        node.parametric_children = new Map()
+        node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
+        console.log('Parametric child is', node.parametric_children.get(param_name))
+      } else {
+        console.log('Found parametric children', node.parametric_children)
+        node.parametric_children.forEach((c) => {
+          if (c.param_name !== param_name && c.matcher_type === matcher_type)
+            throw new Error(
+              `Cannot create route "${path}" with parameter "${param_name}" and matcher type "${matcher_type}"` +
+              'because a route already exists with a different parameter name and same matcher type ' +
+              `("${c.param_name}") in the same location`
+            );
+        })
       }
 
-      if (node.parametric_child.store === null) {
-        console.log('node.parametric_child.store is null; create store')
-        node.parametric_child.store = this._storeFactory();
-        console.log('created store for parametric', node.parametric_child.store)
+      if (!node.parametric_children.has(param_name)) {
+        console.log('setting parametric child for param', param_name)
+        node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
+      }
+      
+      const current_parametric_child = node.parametric_children.get(param_name)!
+      if (current_parametric_child?.store === null) {
+        console.log('current_parametric_child.store is null; create store')
+        current_parametric_child.store = this._storeFactory();
+        console.log('created store for parametric', current_parametric_child.store)
       }
       console.log('returning newly created store.')
-      return node.parametric_child.store;
+      return current_parametric_child?.store;
     }
 
     if (ends_with_wildcard) { // The final part is a wildcard
@@ -356,9 +385,10 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
   }
 
   if (node.static_children !== null) {
-    console.log('node has static children')
+    console.log(`node ${node.segment} has static children:`, node.static_children)
+    console.log('looking for character', url.charCodeAt(start_index))
     const static_child = node.static_children.get(url.charCodeAt(start_index));
-
+    console.log('got static child', static_child)
     if (static_child !== undefined) {
       console.log('child matched, process child', static_child)
       const route = matchRoute(url, url_length, static_child, start_index);
@@ -370,45 +400,49 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
     }
   }
 
-  if (node.parametric_child !== null) {
-    const parametric_node = node.parametric_child;
-    console.log('node has parametric children', parametric_node)
+  if (node.parametric_children !== null) {
+    const parametric_children = node.parametric_children;
+    console.log('node has parametric children', parametric_children)
     const slash_index = url.indexOf('/', start_index);
-    console.log('slash / index is', slash_index)
+    console.log('slash index is', slash_index)
 
     if (slash_index !== start_index) { // Params cannot be empty
       console.log('slash index', slash_index, 'and start index', start_index, 'do not match')
-      if (slash_index === -1 || slash_index >= url_length) {
-        if (parametric_node.store !== null) {
-          console.log('found parametric node store. return', parametric_node.store)
-          const params: Params = {}; // This is much faster than using a computed property
-          const param = url.slice(start_index, url_length)
-          const matcher = parametric_node.matcher
 
-          if (matcher) {
-            console.log('found matcher', matcher)
-            const type_match = matcher(param)
-            if (!type_match) {
-              console.log('parametric node has matcher, but failed to match param type')
-              return null
-            }
-            console.log('param type equals matcher type')
+      for (const parametric_node of parametric_children) {
+        const [ key, node ] = parametric_node
+        console.log('processing param key', key, node)
+        if (node.matcher) {
+          console.log('found matcher', node.matcher)
+          const type_match = node.matcher(url.slice(start_index))
+          if (!type_match) {
+            console.log('parametric node has matcher but does not match param type')
+            continue
           }
-          
-          params[parametric_node.param_name] = param;
-          return {
-            store: parametric_node.store,
-            params,
-          };
         }
-      } else if (parametric_node.static_child !== null) {
-        console.log('parametric node has static child', parametric_node.static_child, 'process child')
-        const route = matchRoute(url, url_length, parametric_node.static_child, slash_index);
+        if (slash_index === -1 || slash_index >= url_length) {
+          /* What does this mean? End of segment? */
 
-        if (route !== null) {
-          console.log('set params and return route', route)
-          route.params[parametric_node.param_name] = url.slice(start_index, slash_index);
-          return route;
+          if (node.store !== null) {
+            console.log('found parametric node store. return', node.store)
+            const params: Params = {}; // This is much faster than using a computed property
+            const param = url.slice(start_index, url_length)
+            
+            params[node.param_name] = param;
+            return {
+              store: node.store,
+              params,
+            };
+          }
+        } else if (node.static_child !== null) {
+          console.log('parametric node has static child', node.static_child, 'process child')
+          const route = matchRoute(url, url_length, node.static_child, slash_index);
+
+          if (route !== null) {
+            console.log('set params and return route', route)
+            route.params[node.param_name] = url.slice(start_index, slash_index);
+            return route;
+          }
         }
       }
     }
