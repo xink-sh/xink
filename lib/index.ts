@@ -75,7 +75,9 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 
         handlers.forEach(([key, value]) => {
           if (typeof value !== 'function')
-            throw new Error(`Handler ${key} for ${path} is not a function`)
+            throw new Error(`Handler ${key} for ${path} is not a function.`)
+          if (key === 'CONNECT' || key === 'TRACE')
+            throw new Error(`xink does not support the ${key} method.`)
 
           store[key] = value
         })
