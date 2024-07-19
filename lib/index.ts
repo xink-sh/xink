@@ -96,9 +96,12 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
 export const xink = async ({ req }: { req: Request }): Promise<Response> => {
   const url = new URL(req.url)
   const route = router.find(url.pathname)
-  const handler = route?.store[req.method]
 
-  if (!handler) return new Response('Not Found', { status: 404 })
+  if (!route) return new Response('Not Found', { status: 404 })
+
+  const handler = route.store[req.method]
+
+  if (!handler) return new Response('Method Not Allowed', { status: 405 })
 
   return handler({ req, headers: req.headers, url, params: route.params })
 }
