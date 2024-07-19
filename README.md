@@ -33,6 +33,8 @@ export const POST = async ({ req, url }) => {
 }
 ```
 
+> xink does not support the `CONNECT` or `TRACE` HTTP request methods.
+
 ## Matcher routes
 
 To define a test for a matcher route, create a `src/params` directory in your project. Then create a javascript or typescript file for each type. The file needs to export a `match` function that takes in a string and returns a boolean. When `true` is returned, the param matches and the router either continues to try and match the rest of the route or returns the route if this is the last segment. Returning `false` indicates the param does not match, and the router keeps searching for a route.
