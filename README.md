@@ -40,19 +40,22 @@ export const POST = async ({ req, url }) => {
 To define a test for a matcher route, create a `src/params` directory in your project. Then create a javascript or typescript file for each type. The file needs to export a `match` function that takes in a string and returns a boolean. When `true` is returned, the param matches and the router either continues to try and match the rest of the route or returns the route if this is the last segment. Returning `false` indicates the param does not match, and the router keeps searching for a route.
 
 ```ts
-/* src/params/string.ts */
-export const match = (param: string) => {
-  const string = /^[a-zA-Z]+$/
-  return string.test(param)
-} 
-```
-
-```ts
 /* src/params/fruit.ts */
 export const match = (param: string) => {
   const fruits = new Set(['apple', 'orange', 'grape'])
   return fruits.has(param)
 } 
+```
+
+xink provides the following built-in matchers, but they can be overridden by creating your own file definitions:
+
+```ts
+/* string */
+(param: string) => /^[a-zA-Z]+$/.test(param)
+```
+```ts
+/* number */
+(param: string) => /^[0-9]+$/.test(param)
 ```
 
 ## Origins
