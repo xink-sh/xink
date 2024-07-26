@@ -94,7 +94,7 @@ Returns a text response. By default, it sends a `Content-Length` header and a `C
 ```ts
 import { text } from 'xink'
 
-export const GET = async () => {
+export const GET = () => {
   return text(`Hello World!`)
 }
 ```
@@ -104,7 +104,7 @@ Returns a json response. By default, it sends a `Content-Length` header and a `C
 ```ts
 import { json } from 'xink'
 
-export const GET = async () => {
+export const GET = () => {
   return json({ hello: world })
 }
 ```
