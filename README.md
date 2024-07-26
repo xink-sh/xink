@@ -17,7 +17,7 @@ So far, we've added the following route features:
 
 > The `[[optional]]` route feature is planned. We may consider allowing [...rest] to be in the middle of a route.
 
-xink is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) implementation of directory routing. For example, an endpoint file needs to export one or more functions for each HTTP method it will serve.
+xink is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) implementation of directory routing. For example, an endpoint file needs to export one or more functions for each HTTP method it will serve. You can also define a fallback, for any unhandled request methods.
 
 ```ts
 /* src/routes/article/[slug]/endpoint.ts */
@@ -30,6 +30,10 @@ export const GET = async ({ url, params }) => {
 
 export const POST = async ({ req, url }) => {
   return new Response(`This is the ${url.pathname} route, and you sent ${await req.json()}`)
+}
+
+export const fallback = async ({ req }: RequestEvent): Promise<Response> => {
+  return new Response(`Hello ${req.method}`)
 }
 ```
 
