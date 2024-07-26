@@ -48,17 +48,8 @@ const sortMap = (data: Map<string, ParametricNode>): Map<string, ParametricNode>
   }))
 }
 
-const stringMatcher = (param: string) => {
-  console.log('matcher received', param)
-  const string = /^[a-zA-Z]+$/
-  return string.test(param)
-}
-
-const numberMatcher = (param: string) => {
-  console.log('matcher received', param)
-  const number = /^[0-9]+$/
-  return number.test(param)
-} 
+const stringMatcher = (param: string) => /^[a-zA-Z]+$/.test(param)
+const numberMatcher = (param: string) => /^[0-9]+$/.test(param)
 
 export class Router {
   _root: Node
