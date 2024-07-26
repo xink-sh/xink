@@ -51,10 +51,6 @@ const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> =
     let path = dir.substring(routes_dir.length) || '/'
 
     /* Convert matcher segments. */
-    /**
-     * Need to import what the matcher would be, from src/params/<matcher-name>.js.
-     * @example export function match(param) { return /^\d+$/.test(param); }
-     */
     path = path.replace(/\[{1}([\w.~-]+?=[a-zA-Z]+?)\]{1}/g, ':$1')
 
     /* Convert optional segments. */
