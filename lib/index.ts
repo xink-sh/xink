@@ -13,7 +13,7 @@ const router = new Router()
 /**
  * Initialize routes.
  */
-export const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> => {
+const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> => {
   c = config ? validateConfig(config) : CONFIG
   const routes_dir = c.routes
   const params_dir = c.params
@@ -92,18 +92,24 @@ export const initRouter = async ({ config }: { config?: Config } = {}): Promise<
   await readDirRecursive(`${routes_dir}`)
 }
 
-/**
- * xink Filesystem Router
- */
-export const xink = async ({ req }: { req: Request }): Promise<Response> => {
-  const url = new URL(req.url)
-  const route = router.find(url.pathname)
+export class Xink {
+  constructor() {
+    initRouter()
+  }
 
-  if (!route) return new Response('Not Found', { status: 404 })
+  /**
+   * xink Filesystem Router
+   */
+  async fetch(req: Request ): Promise<Response> {
+    const url = new URL(req.url)
+    const route = router.find(url.pathname)
 
-  const handler = route.store[req.method]
+    if (!route) return new Response('Not Found', { status: 404 })
 
-  if (!handler) return new Response('Method Not Allowed', { status: 405 })
+    const handler = route.store[req.method]
 
-  return handler({ req, headers: req.headers, url, params: route.params })
+    if (!handler) return new Response('Method Not Allowed', { status: 405 })
+
+    return handler({ req, headers: req.headers, url, params: route.params })
+  }
 }

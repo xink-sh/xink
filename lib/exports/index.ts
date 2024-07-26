@@ -1,4 +1,4 @@
-export { xink, initRouter } from '../index.ts'
+export { Xink } from '../index.ts'
 export const json = (data: any, init?: ResponseInit | undefined): Response => {
   const body = JSON.stringify(data)
   const headers = new Headers(init?.headers)

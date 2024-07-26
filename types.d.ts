@@ -48,13 +48,9 @@ export type Key = string | number;
 /**
  * xink Filesystem Router
  */
-export function xink({ req }: { req: Request }): Promise<Response>
-
-/**
- * Initialize xink Router.
- * Needed even if you don't pass in a config.
- */
-export function initRouter({}: { config?: Config } = {}): void
+export class Xink {
+  async fetch({ req }: { req: Request }): Promise<Response>
+}
 
 export function json(data: any, init?: ResponseInit | undefined): Response
 export function text(data: string, init?: ResponseInit | undefined): Response
