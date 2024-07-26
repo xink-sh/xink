@@ -37,7 +37,7 @@ export const POST = async ({ req, url }) => {
   return json(await req.json())
 }
 
-export const fallback = async ({ req }: RequestEvent): Promise<Response> => {
+export const fallback = ({ req }: RequestEvent): Promise<Response> => {
   return text(`Hello ${req.method}`)
 }
 ```
