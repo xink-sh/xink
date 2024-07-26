@@ -17,6 +17,7 @@ const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> =
   c = config ? validateConfig(config) : CONFIG
   const routes_dir = c.routes
   const params_dir = c.params
+  const allowed_handlers = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'fallback'])
   
   try {
     statSync(join(cwd, routes_dir)).isDirectory()
@@ -72,8 +73,8 @@ const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> =
         handlers.forEach(([key, value]) => {
           if (typeof value !== 'function')
             throw new Error(`Handler ${key} for ${path} is not a function.`)
-          if (key === 'CONNECT' || key === 'TRACE')
-            throw new Error(`xink does not support the ${key} method.`)
+          if (!allowed_handlers.has(key))
+            throw new Error(`xink does not support the ${key} endpoint handler, found in ${join(dir, f)}`)
 
           store[key] = value
         })
@@ -102,7 +103,7 @@ export class Xink {
 
     if (!route) return new Response('Not Found', { status: 404 })
 
-    const handler = route.store[req.method]
+    const handler = route.store[req.method] ?? route.store['fallback']
 
     if (!handler) return new Response('Method Not Allowed', { status: 405 })
 
