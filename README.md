@@ -80,11 +80,11 @@ xink provides the following built-in matchers, but they can be overridden by cre
 
 ```ts
 /* string */
-(param: string) => /^[a-zA-Z]+$/.test(param)
+(param) => /^[a-zA-Z]+$/.test(param)
 ```
 ```ts
 /* number */
-(param: string) => /^[0-9]+$/.test(param)
+(param) => /^[0-9]+$/.test(param)
 ```
 
 ## Helper Functions
