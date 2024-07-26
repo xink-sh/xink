@@ -49,7 +49,7 @@ export type Key = string | number;
  * xink Filesystem Router
  */
 export class Xink {
-  async fetch({ req }: { req: Request }): Promise<Response>
+  async fetch(req: Request): Promise<Response>
 }
 
 export function json(data: any, init?: ResponseInit | undefined): Response
