@@ -37,7 +37,7 @@ export const POST = async ({ req, url }) => {
   return json(await req.json())
 }
 
-export const fallback = ({ req }: RequestEvent): Promise<Response> => {
+export const fallback = ({ req }) => {
   return text(`Hello ${req.method}`)
 }
 ```
@@ -70,7 +70,7 @@ To define a test for a matcher route, create a `src/params` directory in your pr
 
 ```ts
 /* src/params/fruit.ts */
-export const match = (param: string) => {
+export const match = (param) => {
   const fruits = new Set(['apple', 'orange', 'grape'])
   return fruits.has(param)
 } 
