@@ -48,10 +48,23 @@ const sortMap = (data: Map<string, ParametricNode>): Map<string, ParametricNode>
   }))
 }
 
+const stringMatcher = (param: string) => {
+  console.log('matcher received', param)
+  const string = /^[a-zA-Z]+$/
+  return string.test(param)
+}
+
+const numberMatcher = (param: string) => {
+  console.log('matcher received', param)
+  const number = /^[0-9]+$/
+  return number.test(param)
+} 
+
 export class Router {
   _root: Node
   _storeFactory: StoreFactory
   _matchers
+  _default_matchers
   constructor({ storeFactory }: { storeFactory?: StoreFactory } = { storeFactory: defaultStoreFactory }) {
     if (typeof storeFactory !== 'function')
       throw new TypeError('`storeFactory` must be a function');
@@ -64,6 +77,10 @@ export class Router {
     this._root = createNode('/');
     this._storeFactory = storeFactory;
     this._matchers = new Map<string, Matcher>()
+    this._default_matchers = new Map<string, Matcher>([
+      ['string', stringMatcher],
+      ['number', numberMatcher]
+    ])
   }
 
   getTree() {
@@ -78,7 +95,7 @@ export class Router {
 
   getMatcher(type: string): Matcher | null {
     console.log('trying to find matcher for', type)
-    const matcher = this._matchers.get(type) ?? null
+    const matcher = this._matchers.get(type) ?? this._default_matchers.get(type) ?? null
     console.log('find matcher?', matcher ? 'yes' : 'no')
     return matcher
   }
