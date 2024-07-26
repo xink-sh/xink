@@ -44,9 +44,6 @@ const initRouter = async ({ config }: { config?: Config } = {}): Promise<void> =
   /* Read params directory. */
   await readParamsDir(params_dir)
 
-  /**
-   * Reference: https://stackoverflow.com/a/63111390
-   */
   const readDirRecursive = async (dir: string): Promise<void> => {
     const directories = readdirSync(dir)
     let path = dir.substring(routes_dir.length) || '/'
