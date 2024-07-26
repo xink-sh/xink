@@ -25,19 +25,20 @@ xink is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) imple
 
 ```ts
 /* src/routes/article/[slug]/endpoint.ts */
+import { json, text } from 'xink'
 
 export const GET = async ({ url, params }) => {
   const article = await getArticle(params.slug)
 
-  return new Response(`Here is the ${article.title} post!`)
+  return text(`Here is the ${article.title} post!`)
 }
 
 export const POST = async ({ req, url }) => {
-  return new Response(`This is the ${url.pathname} route, and you sent ${await req.json()}`)
+  return json(await req.json())
 }
 
 export const fallback = async ({ req }: RequestEvent): Promise<Response> => {
-  return new Response(`Hello ${req.method}`)
+  return text(`Hello ${req.method}`)
 }
 ```
 
@@ -84,6 +85,28 @@ xink provides the following built-in matchers, but they can be overridden by cre
 ```ts
 /* number */
 (param: string) => /^[0-9]+$/.test(param)
+```
+
+## Helper Functions
+
+### text
+Returns a text response. By default, it sends a `Content-Length` header and a `Content-Type` header of `text/plain`.
+```ts
+import { text } from 'xink'
+
+export const GET = async () => {
+  return text(`Hello World!`)
+}
+```
+
+### json
+Returns a json response. By default, it sends a `Content-Length` header and a `Content-Type` header of `application/json`.
+```ts
+import { json } from 'xink'
+
+export const GET = async () => {
+  return json({ hello: world })
+}
 ```
 
 ## Origins
