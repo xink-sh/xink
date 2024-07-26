@@ -105,7 +105,13 @@ export class Xink {
 
     const handler = route.store[req.method] ?? route.store['fallback']
 
-    if (!handler) return new Response('Method Not Allowed', { status: 405 })
+    if (!handler)
+      return new Response('Method Not Allowed', { 
+        status: 405,
+        headers: {
+          'Allow': Object.keys(route.store).join(', ')
+        }
+      })
 
     return handler({ req, headers: req.headers, url, params: route.params })
   }
