@@ -17,7 +17,11 @@ So far, we've added the following route features:
 
 > The `[[optional]]` route feature is planned. We may consider allowing [...rest] to be in the middle of a route.
 
+## Defining Routes
+
 xink is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) implementation of directory routing. For example, an endpoint file needs to export one or more functions for each HTTP method it will serve. You can also define a fallback, for any unhandled request methods.
+
+> xink does not support the `CONNECT` or `TRACE` HTTP request methods.
 
 ```ts
 /* src/routes/article/[slug]/endpoint.ts */
@@ -36,8 +40,6 @@ export const fallback = async ({ req }: RequestEvent): Promise<Response> => {
   return new Response(`Hello ${req.method}`)
 }
 ```
-
-> xink does not support the `CONNECT` or `TRACE` HTTP request methods.
 
 ## Use
 
