@@ -5,7 +5,9 @@ export type RequestEvent = {
   headers: Omit<Headers, 'toJSON' | 'count' | 'getAll'>;
   url: Omit<URL, 'createObjectURL' | 'revokeObjectURL' | 'canParse'>;
   params: { [key: string]: any };
+  route: Route
 }
+export type MaybePromise<T> = T | Promise<T>
 export type Config = {
   params?: string;
   routes?: string;
@@ -23,26 +25,17 @@ export type SegmentType = {
   name: 'static' | 'specific' | 'matcher' | 'dynamic' | 'low';
   id: number;
 }
-export type Handler = (event: RequestEvent) => Promise<Response>
+export type Handler = (event: RequestEvent) => MaybePromise<Response> | null
 export type Handlers = {
   [key: string]: Handler
 }
+type Params = { [key: string]: string }
+
 export type RouteInfo = {
-  params: { [key: string]: string };
+  params: Params;
   handler: Handler | null;
 }
 export type Static = { [key: string]: any }
-export type Potential = {
-  priority: number;
-  path: string;
-  params: { [key: string]: string };
-  handler: Handler;
-}
-export type Low = {
-  type: number;
-  match: MatchFunction;
-  handlers: Handlers
-}
 export type Key = string | number;
 
 /**
@@ -52,9 +45,10 @@ export class Xink {
   async fetch(req: Request): Promise<Response>
 }
 
+export type Handle = (input: { event: RequestEvent, resolve(event: RequestEvent): MaybePromise<Response> }) => MaybePromise<Response>
 export function json(data: any, init?: ResponseInit | undefined): Response
 export function text(data: string, init?: ResponseInit | undefined): Response
-
+export function sequence(...handlers: Handle[])
 
 /**
  * Medley types.

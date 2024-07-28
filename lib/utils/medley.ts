@@ -40,7 +40,7 @@ const sortMap = (data: Map<string, ParametricNode>): Map<string, ParametricNode>
   return new Map([...data].sort((a, b) => {
     const f = a[1].matcher_type
     const s = b[1].matcher_type
-    console.log('Sorting', f, s)
+    //console.log('Sorting', f, s)
     if (f === s) return 0
     if (f === null) return 1 /* a should come before b */
     if (s === null) return -1 /* b should come before a */
@@ -79,15 +79,15 @@ export class Router {
   }
 
   setMatcher(type: string, matcher: Matcher) {
-    console.log('setting matcher for type', type)
+    //console.log('setting matcher for type', type)
     this._matchers.set(type, matcher)
-    console.log('set', this._matchers.get(type))
+    //console.log('set', this._matchers.get(type))
   }
 
   getMatcher(type: string): Matcher | null {
-    console.log('trying to find matcher for', type)
+    //console.log('trying to find matcher for', type)
     const matcher = this._matchers.get(type) ?? this._default_matchers.get(type) ?? null
-    console.log('find matcher?', matcher ? 'yes' : 'no')
+    //console.log('find matcher?', matcher ? 'yes' : 'no')
     return matcher
   }
 
@@ -98,11 +98,11 @@ export class Router {
     if (path === '' || path[0] !== '/') {
       throw new Error(`Invalid route: ${path}\nRoute path must begin with a "/"`);
     }
-    console.log('Registering path', path)
+    //console.log('Registering path', path)
     const ends_with_wildcard = path.endsWith('*');
 
     if (ends_with_wildcard) {
-      console.log('Path ends with wildcard')
+      //console.log('Path ends with wildcard')
       path = path.slice(0, -1); // Slice off trailing '*'
     }
 
@@ -111,12 +111,12 @@ export class Router {
     //const param_segments = path.match(/:[\w.~-]+?(?=\/|$)/g) || [];
     const matcher_regex = /:[\w.~-]+?=[a-zA-Z]+?(?=\/|$)/g
     const param_segments = path.match(/:[\w.~-]+?(?:=[a-zA-Z]+?)?(?=\/|$)/g) || [];
-    console.log('Static segments are', static_segments)
-    console.log('Optional segments are', optional_segments)
-    console.log('Param segments are', param_segments)
+    //console.log('Static segments are', static_segments)
+    //console.log('Optional segments are', optional_segments)
+    //console.log('Param segments are', param_segments)
 
     if (static_segments[static_segments.length - 1] === '') {
-      console.log('Popping last static segment, becuase it is an empty string')
+      //console.log('Popping last static segment, becuase it is an empty string')
       static_segments.pop();
     }
 
@@ -125,16 +125,16 @@ export class Router {
 
     for (let i = 0; i < static_segments.length; ++i) {
       /* At least one static segment. */
-      console.log('i is ', i)
+      //console.log('i is ', i)
       let segment = static_segments[i];
-      console.log('Processing path segment', segment)
+      //console.log('Processing path segment', segment)
       let is_matcher = false;
 
       if (i > 0) { // Set parametric properties on the node
         const param = param_segments[param_segments_index]
-        console.log('Pre-slice param segment top', param)
+        //console.log('Pre-slice param segment top', param)
         is_matcher = matcher_regex.test(param)
-        console.log(`param ${param} is matcher?`, is_matcher)
+        //console.log(`param ${param} is matcher?`, is_matcher)
         let param_name = ''
         let matcher: Matcher = null
         let matcher_type: MatcherType = null
@@ -151,14 +151,14 @@ export class Router {
         } else {
           /* Is regular param, remove leading : */
           param_name = param_segments[param_segments_index++].slice(1);
-          console.log('Post-slice param segment top', param_name)
+          //console.log('Post-slice param segment top', param_name)
         }
 
         if (node.parametric_children === null) {
-          console.log('Found no parametric child top, creating...')
+          //console.log('Found no parametric child top, creating...')
           node.parametric_children = new Map()
           node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
-          console.log('Parametric child is', node.parametric_children.get(param_name))
+          //console.log('Parametric child is', node.parametric_children.get(param_name))
           // TODO sort parametric children so null matcher is last, for fallback
         } else {
           node.parametric_children.forEach((c) => {
@@ -172,115 +172,115 @@ export class Router {
         }
 
         //const { parametric_children } = node;
-        console.log('parametric_children from node', node.parametric_children)
+        //console.log('parametric_children from node', node.parametric_children)
         if (!node.parametric_children.has(param_name)) {
-          console.log('setting parametric child for param', param_name)
+          //console.log('setting parametric child for param', param_name)
           node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
 
           /* Sort so that any non-matcher node is last in the map, therefore is checked last when matching. */
           node.parametric_children = sortMap(node.parametric_children)
-          console.log('parametric children now', node.parametric_children)
+          //console.log('parametric children now', node.parametric_children)
         }
         
         const current_parametric_child = node.parametric_children.get(param_name)!
 
         if (current_parametric_child?.static_child === null) {
-          console.log('Parametric child has no static child; creating...')
+          //console.log('Parametric child has no static child; creating...')
           node = current_parametric_child.static_child = createNode(segment);
-          console.log('Parametric childs static child is now', node)
+          //console.log('Parametric childs static child is now', node)
           continue;
         }
 
         // TODO can this be an else for above?
         node = current_parametric_child?.static_child;
-        console.log('Parametric childs static child is', node)
+        //console.log('Parametric childs static child is', node)
       }
 
       for (let j = 0; ;) {
-        console.log('j is', j, 'segment length is', segment.length)
+        //console.log('j is', j, 'segment length is', segment.length)
         if (j === segment.length) {
           /* Reached end of segment. */
-          console.log('Reached end of segment.')
-          console.log('j === segment.length', j, segment.length)
+          //console.log('Reached end of segment.')
+          //console.log('j === segment.length', j, segment.length)
           if (j < node.segment.length) { // Move the current node down
-            console.log('j is less than nodes segment length; clone.', j, node.segment.length)
-            console.log('cloning node', node, 'for', node.segment.slice(j))
+            //console.log('j is less than nodes segment length; clone.', j, node.segment.length)
+            //console.log('cloning node', node, 'for', node.segment.slice(j))
             const child_node = cloneNode(node, node.segment.slice(j));
-            console.log('child_node is', child_node, '; moving down.')
+            //console.log('child_node is', child_node, '; moving down.')
             Object.assign(node, createNode(segment, [child_node]));
-            console.log('Post move, node is', node)
+            //console.log('Post move, node is', node)
           }
-          console.log('breaking out of j === segment.length if')
+          //console.log('breaking out of j === segment.length if')
           break;
         }
 
         if (j === node.segment.length) { // Add static child
-          console.log('j === node.segment.length', j, node.segment.length, node.segment)
+          //console.log('j === node.segment.length', j, node.segment.length, node.segment)
           const current_character = segment.charCodeAt(j)
-          console.log('current_character is', segment[j], current_character)
+          //console.log('current_character is', segment[j], current_character)
 
           if (node.static_children !== null) {
-            console.log('nodes static_children is not null; has current_character?', node.static_children)
+            //console.log('nodes static_children is not null; has current_character?', node.static_children)
             const maybe_child = node.static_children.get(current_character)
-            console.log('node.static_children has current character?', !!maybe_child)
+            //console.log('node.static_children has current character?', !!maybe_child)
             if (maybe_child) {
-              console.log('yep, node static children has current character')
+              //console.log('yep, node static children has current character')
               node = maybe_child
-              console.log('node is now that child', node)
+              //console.log('node is now that child', node)
               segment = segment.slice(j);
-              console.log(`sliced segment at value of ${j}, now`, segment, 'setting j to 0 and continuing')
+              //console.log(`sliced segment at value of ${j}, now`, segment, 'setting j to 0 and continuing')
               j = 0;
               continue;
             }
           } else {
-            console.log('node.static_children is null; assign new Map')
+            //console.log('node.static_children is null; assign new Map')
             node.static_children = new Map()
           }
 
           // Create new node
           const child_node = createNode(segment.slice(j));
-          console.log('created child node from segment slice', j, child_node)
-          console.log('setting node.static_children to node above, with character', current_character, 'as key')
+          //console.log('created child node from segment slice', j, child_node)
+          //console.log('setting node.static_children to node above, with character', current_character, 'as key')
           node.static_children.set(current_character, child_node);
-          console.log('setting node to child_node and breaking')
+          //console.log('setting node to child_node and breaking')
           node = child_node;
 
           break;
         }
 
         if (segment[j] !== node.segment[j]) { // Split the node
-          console.log('segment', segment[j], 'does not equal node.segment', node.segment[j], '; split node')
+          //console.log('segment', segment[j], 'does not equal node.segment', node.segment[j], '; split node')
           const existing_child = cloneNode(node, node.segment.slice(j));
-          console.log('existing_child', existing_child, 'is now clone of', node, 'and node.segment.slice(j)', node.segment.slice(j))
+          //console.log('existing_child', existing_child, 'is now clone of', node, 'and node.segment.slice(j)', node.segment.slice(j))
           const new_child = createNode(segment.slice(j));
-          console.log('new_child is', new_child, 'by creating node from', segment.slice(j))
+          //console.log('new_child is', new_child, 'by creating node from', segment.slice(j))
 
           Object.assign(node, createNode(node.segment.slice(0, j), [existing_child, new_child]));
-          console.log('Assigning new node from', node.segment.slice(0, j), 'and children', [existing_child, new_child], 'to', node)
+          //console.log('Assigning new node from', node.segment.slice(0, j), 'and children', [existing_child, new_child], 'to', node)
 
           node = new_child;
-          console.log('node is now new_child', new_child, 'and breaking')
+          //console.log('node is now new_child', new_child, 'and breaking')
 
           break;
         }
 
         ++j;
-        console.log('add 1 to j. j now', j)
+        //console.log('add 1 to j. j now', j)
       }
     }
 
     if (param_segments_index < param_segments.length) { // The final part is a parameter
-      console.log('final segment is a param', param_segments_index, 'is less than', param_segments.length)
+      //console.log('final segment is a param', param_segments_index, 'is less than', param_segments.length)
       let is_matcher = false;
       let param_name = ''
       let matcher: Matcher = null
       const param = param_segments[param_segments_index];
-      console.log('param is bottom', param)
+      //console.log('param is bottom', param)
       is_matcher = matcher_regex.test(param)
       let matcher_type: MatcherType = null
 
       if (is_matcher) {
-        console.log('is matcher')
+        //console.log('is matcher')
         matcher_type = param.split('=')[1]
         /* Remove the leading : and anything after and including the = that defines the match type. */
         param_name = param.slice(1, param.indexOf('='));
@@ -292,16 +292,16 @@ export class Router {
       } else {
         /* Is regular param, remove leading : */
         param_name = param.slice(1);
-        console.log('sliced 1 from param, to get param_name bottom', param_name)
+        //console.log('sliced 1 from param, to get param_name bottom', param_name)
       }
 
       if (node.parametric_children === null) {
-        console.log('Found no parametric child bottom, creating...')
+        //console.log('Found no parametric child bottom, creating...')
         node.parametric_children = new Map()
         node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
-        console.log('Parametric child is', node.parametric_children.get(param_name))
+        //console.log('Parametric child is', node.parametric_children.get(param_name))
       } else {
-        console.log('Found parametric children', node.parametric_children)
+        //console.log('Found parametric children', node.parametric_children)
         node.parametric_children.forEach((c) => {
           if (c.param_name !== param_name && c.matcher_type === matcher_type)
             throw new Error(
@@ -313,42 +313,42 @@ export class Router {
       }
 
       if (!node.parametric_children.has(param_name)) {
-        console.log('setting parametric child for param', param_name)
+        //console.log('setting parametric child for param', param_name)
         node.parametric_children.set(param_name, createParametricNode(param_name, matcher, matcher_type));
 
         /* Sort so that any non-matcher node is last in the map, therefore is checked last when matching. */
         node.parametric_children = sortMap(node.parametric_children)
-        console.log('parametric children now', node.parametric_children)
+        //console.log('parametric children now', node.parametric_children)
       }
       
       const current_parametric_child = node.parametric_children.get(param_name)!
       if (current_parametric_child?.store === null) {
-        console.log('current_parametric_child.store is null; create store')
+        //console.log('current_parametric_child.store is null; create store')
         current_parametric_child.store = this._storeFactory();
-        console.log('created store for parametric', current_parametric_child.store)
+        //console.log('created store for parametric', current_parametric_child.store)
       }
-      console.log('returning newly created store.')
+      //console.log('returning newly created store.')
       return current_parametric_child?.store;
     }
 
     if (ends_with_wildcard) { // The final part is a wildcard
-      console.log('final part is a wildcard')
+      //console.log('final part is a wildcard')
       if (node.wildcard_store === null) {
-        console.log('final part does not have a wildcard store; create store')
+        //console.log('final part does not have a wildcard store; create store')
         node.wildcard_store = this._storeFactory();
-        console.log('created store for wildcard', node.wildcard_store, 'for final wildcard part')
+        //console.log('created store for wildcard', node.wildcard_store, 'for final wildcard part')
       }
-      console.log('returning wildcard store', node.wildcard_store)
+      //console.log('returning wildcard store', node.wildcard_store)
       return node.wildcard_store;
     }
 
     // The final part is static
     if (node.store === null) {
-      console.log('final part is static because node', node, 'does not have a store; create store')
+      //console.log('final part is static because node', node, 'does not have a store; create store')
       node.store = this._storeFactory();
-      console.log('created store for static', node.store)
+      //console.log('created store for static', node.store)
     }
-    console.log('returning static store', node.store)
+    //console.log('returning static store', node.store)
     return node.store;
   }
 
@@ -358,52 +358,52 @@ export class Router {
     }
 
     const query_index = url.indexOf('?');
-    console.log('query index', query_index)
+    //console.log('query index', query_index)
     const url_length = query_index >= 0 ? query_index : url.length;
-    console.log('url length', url_length)
+    //console.log('url length', url_length)
     return matchRoute(url, url_length, this._root, 0);
   }
 }
 
 function matchRoute(url: string, url_length: number, node: Node, start_index: number): Route {
   const { segment } = node;
-  console.log('segment', segment)
+  //console.log('segment', segment)
   const segment_len = segment.length;
-  console.log('segment length', segment_len)
+  //console.log('segment length', segment_len)
   const segment_end_index = start_index + segment_len;
-  console.log('segment end index', segment_end_index)
+  //console.log('segment end index', segment_end_index)
 
   // Only check the segment if its length is > 1 since the parent has
   // already checked that the url matches the first character
   if (segment_len > 1) {
-    console.log('segment length > 1')
+    //console.log('segment length > 1')
     if (segment_end_index > url_length) {
-      console.log('segment is longer than url. no match. return')
+      //console.log('segment is longer than url. no match. return')
       return null;
     }
 
     if (segment_len < 15) { // Using a loop is faster for short strings
-      console.log('segment length < 15, looping to attempt match')
+      //console.log('segment length < 15, looping to attempt match')
       for (let i = 1, j = start_index + 1; i < segment_len; ++i, ++j) {
-        console.log('comparing', segment[i], url[j])
+        //console.log('comparing', segment[i], url[j])
         if (segment[i] !== url[j]) {
-          console.log('no short match. return')
+          //console.log('no short match. return')
           return null;
         }
       }
     } else if (url.slice(start_index, segment_end_index) !== segment) {
-      console.log('no long match. return')
+      //console.log('no long match. return')
       return null;
     }
   }
 
   start_index = segment_end_index;
-  console.log('start index is now', start_index)
+  //console.log('start index is now', start_index)
 
   if (start_index === url_length) { // Reached the end of the URL
-    console.log('reached end of url')
+    //console.log('reached end of url')
     if (node.store !== null) {
-      console.log('node has a store. returning', node.store)
+      //console.log('node has a store. returning', node.store)
       return {
         store: node.store,
         params: {},
@@ -411,7 +411,7 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
     }
 
     if (node.wildcard_store !== null) {
-      console.log('found wildcard, returning', node.wildcard_store)
+      //console.log('found wildcard, returning', node.wildcard_store)
       return {
         store: node.wildcard_store,
         params: {'*': ''},
@@ -422,16 +422,16 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
   }
 
   if (node.static_children !== null) {
-    console.log(`node ${node.segment} has static children:`, node.static_children)
-    console.log('looking for character', url.charCodeAt(start_index))
+    //console.log(`node ${node.segment} has static children:`, node.static_children)
+    //console.log('looking for character', url.charCodeAt(start_index))
     const static_child = node.static_children.get(url.charCodeAt(start_index));
-    console.log('got static child', static_child)
+    //console.log('got static child', static_child)
     if (static_child !== undefined) {
-      console.log('child matched, process child', static_child)
+      //console.log('child matched, process child', static_child)
       const route = matchRoute(url, url_length, static_child, start_index);
 
       if (route !== null) {
-        console.log('match found', route)
+        //console.log('match found', route)
         return route;
       }
     }
@@ -439,21 +439,21 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
 
   if (node.parametric_children !== null) {
     const parametric_children = node.parametric_children;
-    console.log('node has parametric children', parametric_children)
+    //console.log('node has parametric children', parametric_children)
     const slash_index = url.indexOf('/', start_index);
-    console.log('slash index is', slash_index)
+    //console.log('slash index is', slash_index)
 
     if (slash_index !== start_index) { // Params cannot be empty
-      console.log('slash index', slash_index, 'and start index', start_index, 'do not match')
+      //console.log('slash index', slash_index, 'and start index', start_index, 'do not match')
 
       for (const parametric_node of parametric_children) {
         const [ key, node ] = parametric_node
-        console.log('processing param key', key, node)
+        //console.log('processing param key', key, node)
         if (node.matcher) {
-          console.log('found matcher', node.matcher)
+          //console.log('found matcher', node.matcher)
           const type_match = node.matcher(url.slice(start_index))
           if (!type_match) {
-            console.log('parametric node has matcher but does not match param type')
+            //console.log('parametric node has matcher but does not match param type')
             continue
           }
         }
@@ -461,7 +461,7 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
           /* What does this mean? End of segment? */
 
           if (node.store !== null) {
-            console.log('found parametric node store. return', node.store)
+            //console.log('found parametric node store. return', node.store)
             const params: Params = {}; // This is much faster than using a computed property
             const param = url.slice(start_index, url_length)
             
@@ -472,11 +472,11 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
             };
           }
         } else if (node.static_child !== null) {
-          console.log('parametric node has static child', node.static_child, 'process child')
+          //console.log('parametric node has static child', node.static_child, 'process child')
           const route = matchRoute(url, url_length, node.static_child, slash_index);
 
           if (route !== null) {
-            console.log('set params and return route', route)
+            //console.log('set params and return route', route)
             route.params[node.param_name] = url.slice(start_index, slash_index);
             return route;
           }
@@ -486,7 +486,7 @@ function matchRoute(url: string, url_length: number, node: Node, start_index: nu
   }
 
   if (node.wildcard_store !== null) {
-    console.log('node has wildcard store. return', node.wildcard_store)
+    //console.log('node has wildcard store. return', node.wildcard_store)
     return {
       store: node.wildcard_store,
       params: {
