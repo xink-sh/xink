@@ -176,3 +176,6 @@ dist
 
 # TypeScript Build Info
 tsconfig.tsbuildinfo
+
+# Bun Lock File
+bun.lockb
