@@ -1,7 +1,27 @@
 {
   "name": "@xink-sh/xink",
   "version": "0.1.0-next.1",
-  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xink-sh/xink.git"
+  },
+  "devDependencies": {
+    "bun-types": "latest",
+    "typescript": "^5.0.0"
+  },
+  "exports": {
+    ".": {
+      "import": "./index.js",
+      "types": "./types.d.ts"
+    }
+  },
+  "bugs": {
+    "url": "https://github.com/xink-sh/xink/issues"
+  },
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://github.com/xink-sh/xink#readme",
   "keywords": [
     "directory",
     "filesystem",
@@ -9,35 +29,11 @@
     "router",
     "xink"
   ],
-  "exports": {
-    ".": {
-      "import": "./index.js",
-      "types": "./types.d.ts"
-    }
-  },
-  "types": "types.d.ts",
-  "files": [
-    "dist"
-  ],
   "license": "MIT",
   "scripts": {
     "build": "bun build --entrypoints ./lib/exports/index.js --outdir ./dist && tsc && cp ./types.d.ts ./dist/types.d.ts",
     "prep": "cp ./package.json ./dist/package.json && cp ./README.md ./dist/README.md"
   },
-  "dependencies": {
-    "hexoid": "^1.0.0",
-    "path-to-regexp": "^6.2.2"
-  },
-  "devDependencies": {
-    "bun-types": "latest",
-    "typescript": "^5.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/xink-sh/xink.git"
-  },
-  "bugs": {
-    "url": "https://github.com/xink-sh/xink/issues"
-  },
-  "homepage": "https://github.com/xink-sh/xink#readme"
+  "type": "module",
+  "types": "types.d.ts"
 }
