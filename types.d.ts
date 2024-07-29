@@ -1,10 +1,9 @@
-import { RequestEvent } from "./lib/types/internal"
+import { MaybePromise, RequestEvent } from "./lib/types/internal"
 
 export class Xink {
   async fetch(request: Request): Promise<Response>
 }
 
-type MaybePromise<T> = T | Promise<T>
 export type Handle = (input: { event: RequestEvent, resolve(event: RequestEvent): MaybePromise<Response> }) => MaybePromise<Response>
 
 export function json(data: any, init?: ResponseInit | undefined): Response
