@@ -13,11 +13,12 @@ export type Handlers = {
 export type MaybePromise<T> = T | Promise<T>
 export type Params = { [key: string]: string }
 export type RequestEvent = {
-  req: Request;
   headers: Omit<Headers, 'toJSON' | 'count' | 'getAll'>;
-  url: Omit<URL, 'createObjectURL' | 'revokeObjectURL' | 'canParse'>;
+  locals: { [key: string]: string },
   params: Params;
-  route: Route
+  req: Request;
+  route: Route;
+  url: Omit<URL, 'createObjectURL' | 'revokeObjectURL' | 'canParse'>;
 }
 export type ValidatedConfig = {
   params: string;

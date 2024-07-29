@@ -1,3 +1,5 @@
+import { RequestEvent } from "./lib/types/internal"
+
 export class Xink {
   async fetch(req: Request): Promise<Response>
 }
