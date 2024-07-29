@@ -1,7 +1,7 @@
 import { RequestEvent } from "./lib/types/internal"
 
 export class Xink {
-  async fetch(req: Request): Promise<Response>
+  async fetch(request: Request): Promise<Response>
 }
 
 type MaybePromise<T> = T | Promise<T>
