@@ -31,8 +31,8 @@
   ],
   "license": "MIT",
   "scripts": {
-    "build": "bun build --entrypoints ./lib/exports/index.js --outdir ./dist && tsc && cp ./types.d.ts ./dist/types.d.ts",
-    "prep": "cp ./package.json ./dist/package.json && cp ./README.md ./dist/README.md"
+    "build": "bun build --entrypoints ./lib/exports/index.js --outdir ./dist && tsc && bun run prep",
+    "prep": "cp ./package.json ./dist/package.json && cp ./README.md ./dist/README.md && cp ./types.d.ts ./dist/types.d.ts"
   },
   "type": "module",
   "types": "types.d.ts"
