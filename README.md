@@ -25,7 +25,7 @@ xink is based on [SvelteKit's](https://kit.svelte.dev/docs/routing#server) imple
 
 ```ts
 /* src/routes/article/[slug]/endpoint.ts */
-import { json, text } from 'xink'
+import { json, text } from '@xink-sh/xink'
 
 export const GET = async ({ url, params }) => {
   const article = await getArticle(params.slug)
@@ -46,7 +46,7 @@ export const fallback = ({ req }) => {
 
 ### Bun
 ```ts
-import { Xink } from "xink"
+import { Xink } from "@xink-sh/xink"
 
 const api = new Xink()
 
@@ -57,7 +57,7 @@ Bun.serve({ fetch: api.fetch })
 
 ### Deno
 ```ts
-import { Xink } from "xink"
+import { Xink } from "@xink-sh/xink"
 
 const api = new Xink()
 
@@ -92,7 +92,7 @@ xink provides the following built-in matchers, but they can be overridden by cre
 ### text
 Returns a text response. By default, it sends a `Content-Length` header and a `Content-Type` header of `text/plain`.
 ```ts
-import { text } from 'xink'
+import { text } from '@xink-sh/xink'
 
 export const GET = () => {
   return text(`Hello World!`)
@@ -102,7 +102,7 @@ export const GET = () => {
 ### json
 Returns a json response. By default, it sends a `Content-Length` header and a `Content-Type` header of `application/json`.
 ```ts
-import { json } from 'xink'
+import { json } from '@xink-sh/xink'
 
 export const GET = () => {
   return json({ hello: world })
