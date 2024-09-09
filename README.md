@@ -1,6 +1,6 @@
 # xink
 
-This deliciousness is still baking.
+This deliciousness is still baking, and is a first iteration. I've since started building xink as a Bun plugin [here](https://github.com/xink-sh/xink-bun-plugin), so it can theoretically be used in edge runtimes.
 
 xink is a directory-based router designed for APIs, and uses [Medley router](https://github.com/medleyjs/router) under the hood.
 
